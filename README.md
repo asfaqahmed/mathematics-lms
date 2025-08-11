@@ -1,43 +1,23 @@
-# Full Stack Math LMS — Starter Kit
-**Description:** Starter implementation of a Math LMS for a Sri Lankan tutor.
-Features included:
-- Node.js + Express backend (API + PayHere simulation + bank transfer workflow)
-- Next.js frontend (no TypeScript) with Tailwind CSS
-- Authentication (JWT), Admin & Student roles
-- Course management, lessons, YouTube/self-hosted video field
-- PayHere simulated integration, bank transfer workflow with WhatsApp link
-- PDF invoice generation (pdfkit) and email sending (nodemailer - configure SMTP)
-- Uses SQLite for quick demo; switch to PostgreSQL by updating knex config
+Math LMS Phase 1 - Downloadable package
 
-## Quick start (development)
-### Prereqs
-- Node.js 18+
-- npm
-- (optional) PostgreSQL if you want to use Postgres
+Contents:
+- supabase/schema.sql        : Database schema to run on Supabase
+- backend/                  : Express backend (invoice generation, PayHere notify, bank receipt upload, admin approve)
+- frontend/                 : Minimal Next.js frontend (course listing, course detail + purchase buttons)
 
-### Backend
-```
-cd backend
-npm install
-cp .env.example .env
-# edit .env (SMTP, JWT_SECRET, DB settings)
-npm run migrate   # (creates demo SQLite DB)
-npm run seed      # seeds demo admin and sample course
-npm run dev
-```
-Backend runs at http://localhost:4000 by default.
+Quick start (local):
+1. Create a Supabase project and run supabase/schema.sql in SQL editor.
+2. Configure backend/.env with your credentials.
+3. Install backend dependencies:
+   cd backend
+   npm install
+   npm run dev
+4. Install frontend dependencies:
+   cd frontend
+   npm install
+   npm run dev
+5. Open http://localhost:3000
 
-### Frontend
-```
-cd frontend
-npm install
-cp .env.local.example .env.local
-npm run dev
-```
-Frontend runs at http://localhost:3000
-
-## Notes
-- This is a starter scaffold — extend, secure and harden for production.
-- Replace PayHere simulation with real PayHere integration and secure webhooks.
-- Replace SQLite with PostgreSQL by editing `backend/knexfile.js`.
-
+Notes:
+- This package is a Phase 1 MVP. Secure authentication, full admin UI, and PayHere signature verification are not fully implemented.
+- Replace environment variables with your production credentials before deploying.
