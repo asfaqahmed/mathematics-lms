@@ -39,6 +39,12 @@ const transporter = nodemailer.createTransport({
 
 app.post('/api/create-payhere', async (req, res) => {
   try {
+
+    if (!req.user || !req.user.id) {
+  return res.status(400).json({ error: "User not logged in" });
+}
+
+
     const { user_id, course_id, amount } = req.body;
     const { data: payment, error } = await supabase
       .from('payments')
@@ -349,35 +355,98 @@ app.post('/api/create-profile', async (req, res) => {
   }
 });
 
-app.post('/api/create-checkout-session', async (req, res) => {
-  const { course_id, user_id, price } = req.body;
+// app.post('/api/create-checkout-session', async (req, res) => {
+//   const { course_id, user_id, price } = req.body;
+//   try {
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ['card'],
+//       mode: 'payment',
+//       line_items: [{
+//         price_data: {
+//           currency: 'lkr',
+//           product_data: { name: `Course ${course_id}` },
+//           unit_amount: price,
+//         },
+//         quantity: 1,
+//       }],
+//       success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+//       cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
+//       metadata: { user_id, course_id },
+//     });
+
+//     res.json({ sessionId: session.id });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+app.post('/create-checkout-session', async (req, res) => {
+  console.log("📥 Incoming Stripe request body:", req.body);
+
   try {
+    const { course_id, amount, user_id } = req.body;
+    console.log(`🛠 Creating Stripe session for: 
+      User ID: ${user_id}
+      Course ID: ${course_id}
+      Amount: ${amount}
+    `);
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      mode: 'payment',
       line_items: [{
         price_data: {
-          currency: 'lkr',
-          product_data: { name: `Course ${course_id}` },
-          unit_amount: price,
+          currency: 'usd', // change if needed
+          product_data: { name: `Course ID: ${course_id}` },
+          unit_amount: amount * 100,
         },
         quantity: 1,
       }],
-      success_url: `${process.env.CLIENT_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_URL}/payment-cancel`,
-      metadata: { user_id, course_id },
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/payment-success`,
+      cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
     });
 
-    res.json({ sessionId: session.id });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.log("✅ Stripe session created:", session.id);
+    res.json({ id: session.id });
+
+  } catch (error) {
+    console.error("❌ Stripe session creation failed:", error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
 
-
 // Register user
+
+// app.post('/api/create-checkout-session', async (req, res) => {
+//   try {
+//     const { course_id, amount } = req.body;
+
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ['card'],
+//       line_items: [
+//         {
+//           price_data: {
+//             currency: 'usd',
+//             product_data: { name: `Course #${course_id}` },
+//             unit_amount: Math.round(amount * 100), // in cents
+//           },
+//           quantity: 1,
+//         },
+//       ],
+//       mode: 'payment',
+//       success_url: `${process.env.FRONTEND_URL}/${course_id}?payment=success`,
+//       cancel_url: `${process.env.FRONTEND_URL}/${course_id}?payment=cancel`,
+//     });
+
+//     res.json({ id: session.id });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
 app.post('/api/auth/register', async (req, res) => {
   const { email, password, name } = req.body;
   try {
