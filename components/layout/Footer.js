@@ -26,10 +26,10 @@ export default function Footer() {
   }
   
   const socialLinks = [
-    { icon: FiFacebook, href: '#', label: 'Facebook' },
-    { icon: FiTwitter, href: '#', label: 'Twitter' },
-    { icon: FiInstagram, href: '#', label: 'Instagram' },
-    { icon: FiYoutube, href: '#', label: 'YouTube' }
+    { icon: FiFacebook, href: 'https://web.facebook.com/profile.php?id=61577929092606', label: 'Facebook' },
+    { icon: FiTwitter, href: 'https://x.com/asfaqah16919030', label: 'Twitter' },
+    { icon: FiInstagram, href: 'https://www.instagram.com/asfaqahmed356/', label: 'Instagram' },
+    // { icon: FiYoutube, href: '#', label: 'YouTube' }
   ]
   
   return (
