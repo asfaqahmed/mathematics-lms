@@ -312,7 +312,7 @@ export default function Profile({ user, setUser }) {
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           disabled={!editMode}
                           className="input pl-10"
-                          placeholder="+94 77 123 4567"
+                          placeholder="+94 75 660 5254"
                         />
                       </div>
                     </div>
