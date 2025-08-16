@@ -4,6 +4,8 @@ export const isValidEmail = (email) => {
   return regex.test(email)
 }
 
+export const validateEmail = isValidEmail
+
 // Phone validation (Sri Lankan format)
 export const isValidPhone = (phone) => {
   // Accepts formats: +94XXXXXXXXX, 94XXXXXXXXX, 0XXXXXXXXX

@@ -31,9 +31,18 @@ export async function middleware(req) {
   
   // Redirect if authenticated and trying to access auth routes
   if (session && isAuthRoute) {
-    const redirectUrl = req.nextUrl.clone()
-    redirectUrl.pathname = '/courses'
-    return NextResponse.redirect(redirectUrl)
+    const redirectTo = req.nextUrl.searchParams.get('redirectTo')
+    
+    // If there's no redirectTo parameter, redirect to courses
+    // If there is a redirectTo, let the client-side handle it to avoid conflicts
+    if (!redirectTo) {
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = '/courses'
+      return NextResponse.redirect(redirectUrl)
+    }
+    
+    // If there's a redirectTo parameter, let the page handle the redirect
+    // to avoid middleware/client conflicts
   }
   
   // Check admin access
@@ -53,13 +62,18 @@ export async function middleware(req) {
   
   // Add security headers
   const response = NextResponse.next()
-  response.headers.set('X-Frame-Options', 'DENY')
+  // Temporarily allow framing for development (PayHere needs this)
+  if (process.env.NODE_ENV === 'development') {
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  } else {
+    response.headers.set('X-Frame-Options', 'DENY')
+  }
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.payhere.lk *.stripe.com *.google-analytics.com *.googletagmanager.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; img-src 'self' data: blob: *.supabase.co *.unsplash.com *.ytimg.com; connect-src 'self' *.supabase.co *.stripe.com *.payhere.lk"
+    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.payhere.lk *.stripe.com *.google-analytics.com *.googletagmanager.com js.stripe.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com *.stripe.com *.stripe.network m.stripe.network; font-src 'self' fonts.gstatic.com; img-src 'self' data: blob: *.supabase.co *.unsplash.com *.ytimg.com *.googletagmanager.com *.pexels.com images.pexels.com; connect-src 'self' *.supabase.co *.stripe.com *.payhere.lk *.google-analytics.com; frame-src 'self' js.stripe.com *.stripe.com *.payhere.lk sandbox.payhere.lk youtube.com *.youtube.com"
   )
   
   return response

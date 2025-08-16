@@ -29,18 +29,13 @@ export default function Login() {
       
       toast.success('Welcome back!')
       
-      // Check if user is admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single()
+      // Get the redirect URL from query params
+      const redirectTo = router.query.redirectTo || '/courses'
       
-      if (profile?.role === 'admin') {
-        router.push('/admin')
-      } else {
-        router.push('/courses')
-      }
+      // Small delay to ensure session is set, then redirect
+      setTimeout(() => {
+        router.push(redirectTo)
+      }, 100)
     } catch (error) {
       toast.error(error.message || 'Invalid email or password')
     } finally {

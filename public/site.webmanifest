@@ -1,0 +1,19 @@
+{
+  "name": "Mathematics Learning Management System",
+  "short_name": "MathPro LMS",
+  "description": "Master mathematics with expert guidance through our comprehensive online courses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["education", "mathematics", "learning"],
+  "lang": "en"
+}

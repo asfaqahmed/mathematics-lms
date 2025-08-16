@@ -17,19 +17,47 @@ export default function Home({ user }) {
   
   const fetchCourses = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('🔍 Fetching featured courses...');
+      
+      // First try to get featured courses
+      let { data, error } = await supabase
         .from('courses')
         .select('*')
         .eq('featured', true)
+        .order('created_at', { ascending: false })
         .limit(3)
-      console.log(data);
-      if (error) throw error
+      
+      console.log('📊 Featured courses result:', { data, error });
+      
+      // If no featured courses found, get the latest 3 courses
+      if (!error && (!data || data.length === 0)) {
+        console.log('🔍 No featured courses, getting latest courses...');
+        const fallback = await supabase
+          .from('courses')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(3)
+        
+        data = fallback.data
+        error = fallback.error
+        console.log('📊 Latest courses result:', { data, error });
+      }
+      
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Courses fetched successfully:', data?.length || 0, 'courses');
       setCourses(data || [])
-
-      
-      
     } catch (error) {
-      console.error('Error fetching courses:', error)
+      console.error('💥 Error fetching courses:', error);
+      console.error('Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
     } finally {
       setLoading(false)
     }
@@ -197,7 +225,7 @@ export default function Home({ user }) {
             <div className="flex justify-center">
               <div className="spinner"></div>
             </div>
-          ) : (
+          ) : courses.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {courses.map((course, index) => (
                 <motion.div
@@ -210,6 +238,30 @@ export default function Home({ user }) {
                   <CourseCard course={course} />
                 </motion.div>
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <FiBook className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-xl font-semibold text-white mb-2">No courses available yet</h3>
+                <p className="text-gray-400 mb-6">Add some courses to showcase them here.</p>
+                <button
+                  onClick={() => {
+                    fetch('/api/seed-courses', { method: 'POST' })
+                      .then(res => res.json())
+                      .then(data => {
+                        console.log('Seed result:', data)
+                        if (data.courses) {
+                          fetchCourses() // Refresh the courses
+                        }
+                      })
+                      .catch(err => console.error('Seed error:', err))
+                  }}
+                  className="inline-flex items-center px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Add Sample Courses
+                </button>
+              </div>
             </div>
           )}
           

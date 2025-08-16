@@ -7,7 +7,7 @@ import {
   FiAlertCircle, FiXCircle, FiMoreVertical
 } from 'react-icons/fi'
 import { FaWhatsapp } from 'react-icons/fa'
-import { supabase, isAdmin, approveBankPayment } from '../../lib/supabase'
+import { supabase, isAdmin } from '../../lib/supabase'
 import AdminLayout from '../../components/admin/AdminLayout'
 import toast from 'react-hot-toast'
 
@@ -52,14 +52,20 @@ export default function AdminPayments({ user }) {
         .from('payments')
         .select(`
           *,
-          profiles (id, name, email, phone),
-          courses (id, title, price)
+          profiles (
+            name,
+            email,
+            phone
+          ),
+          courses (
+            title,
+            price
+          )
         `)
         .order('created_at', { ascending: false })
-      
+
       if (error) throw error
       setPayments(data || [])
-      setFilteredPayments(data || [])
     } catch (error) {
       console.error('Error fetching payments:', error)
       toast.error('Failed to load payments')
@@ -69,15 +75,15 @@ export default function AdminPayments({ user }) {
   }
   
   const filterPayments = () => {
-    let filtered = [...payments]
+    let filtered = payments
     
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(payment =>
+      filtered = filtered.filter(payment => 
         payment.profiles?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payment.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payment.courses?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase())
+        payment.order_id?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
     
@@ -86,9 +92,9 @@ export default function AdminPayments({ user }) {
       filtered = filtered.filter(payment => payment.status === statusFilter)
     }
     
-    // Method filter
+    // Method filter  
     if (methodFilter !== 'all') {
-      filtered = filtered.filter(payment => payment.method === methodFilter)
+      filtered = filtered.filter(payment => payment.payment_method === methodFilter)
     }
     
     setFilteredPayments(filtered)
@@ -96,30 +102,18 @@ export default function AdminPayments({ user }) {
   
   const handleApprovePayment = async (paymentId) => {
     try {
-      const result = await approveBankPayment(paymentId)
-      
-      if (result) {
-        toast.success('Payment approved and access granted')
-        
-        // Send approval email
-        const payment = payments.find(p => p.id === paymentId)
-        if (payment) {
-          await fetch('/api/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              to: payment.profiles.email,
-              type: 'bankApproval',
-              data: {
-                name: payment.profiles.name,
-                courseName: payment.courses.title
-              }
-            })
-          })
-        }
-        
-        fetchPayments()
-      }
+      const { error } = await supabase
+        .from('payments')
+        .update({ 
+          status: 'approved',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', paymentId)
+
+      if (error) throw error
+
+      toast.success('Payment approved successfully')
+      fetchPayments()
     } catch (error) {
       console.error('Error approving payment:', error)
       toast.error('Failed to approve payment')
@@ -130,11 +124,14 @@ export default function AdminPayments({ user }) {
     try {
       const { error } = await supabase
         .from('payments')
-        .update({ status: 'rejected' })
+        .update({ 
+          status: 'rejected',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', paymentId)
-      
+
       if (error) throw error
-      
+
       toast.success('Payment rejected')
       fetchPayments()
     } catch (error) {
@@ -151,89 +148,141 @@ export default function AdminPayments({ user }) {
   }
   
   const formatDate = (date) => {
-    return new Date(date).toLocaleString('en-US', {
+    return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'short',
+      month: 'short', 
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     })
   }
   
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'approved':
+        return <FiCheckCircle className="w-5 h-5 text-green-400" />
+      case 'pending':
+        return <FiClock className="w-5 h-5 text-yellow-400" />
+      case 'rejected':
+        return <FiXCircle className="w-5 h-5 text-red-400" />
+      case 'failed':
+        return <FiAlertCircle className="w-5 h-5 text-red-400" />
+      default:
+        return <FiClock className="w-5 h-5 text-gray-400" />
+    }
+  }
+  
   const getStatusBadge = (status) => {
     const badges = {
-      pending: { class: 'badge-warning', icon: FiClock },
-      approved: { class: 'badge-success', icon: FiCheckCircle },
-      rejected: { class: 'badge-danger', icon: FiXCircle },
-      failed: { class: 'badge-danger', icon: FiAlertCircle }
+      pending: 'badge-warning',
+      approved: 'badge-success',
+      rejected: 'badge-danger',
+      failed: 'badge-danger'
     }
-    const badge = badges[status] || { class: 'badge-primary', icon: FiAlertCircle }
-    const Icon = badge.icon
-    
-    return (
-      <span className={`badge ${badge.class} flex items-center space-x-1`}>
-        <Icon className="w-3 h-3" />
-        <span>{status}</span>
-      </span>
-    )
+    return badges[status] || 'badge-primary'
   }
-  
-  const getMethodBadge = (method) => {
-    const badges = {
-      payhere: 'badge-primary',
-      stripe: 'badge-primary',
-      bank: 'badge-warning'
-    }
-    return badges[method] || 'badge-primary'
-  }
-  
-  const stats = {
-    total: payments.length,
-    pending: payments.filter(p => p.status === 'pending').length,
-    approved: payments.filter(p => p.status === 'approved').length,
-    totalRevenue: payments
-      .filter(p => p.status === 'approved')
-      .reduce((sum, p) => sum + p.amount, 0)
-  }
-  
+
   if (!user) return null
-  
+
   return (
     <AdminLayout user={user}>
       <div className="p-6">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-display font-bold text-white mb-2">
-            Payment Management
-          </h1>
-          <p className="text-gray-400">
-            Review and manage all payment transactions
-          </p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-white mb-2">
+              Payment Management
+            </h1>
+            <p className="text-gray-400">
+              Review and manage student payments
+            </p>
+          </div>
         </div>
-        
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total Payments</p>
-                <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
+
+        {/* Filters */}
+        <div className="card mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Search
+              </label>
+              <div className="relative">
+                <FiSearch className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search payments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input pl-10"
+                />
               </div>
-              <FiDollarSign className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No payments found</h3>
-              <p className="text-gray-400">Adjust your filters or wait for new payments</p>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="input"
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-2">
+                Method
+              </label>
+              <select
+                value={methodFilter}
+                onChange={(e) => setMethodFilter(e.target.value)}
+                className="input"
+              >
+                <option value="all">All Methods</option>
+                <option value="payhere">PayHere</option>
+                <option value="stripe">Stripe</option>
+                <option value="bank_transfer">Bank Transfer</option>
+              </select>
+            </div>
+            
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setSearchTerm('')
+                  setStatusFilter('all')
+                  setMethodFilter('all')
+                }}
+                className="btn-secondary w-full"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Payments Table */}
+        <div className="card overflow-hidden">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="spinner"></div>
+            </div>
+          ) : filteredPayments.length === 0 ? (
+            <div className="text-center py-12">
+              <FiDollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-white mb-2">No payments found</h3>
+              <p className="text-gray-400">No payments match your current filters.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="table-auto">
                 <thead>
                   <tr>
-                    <th>Invoice</th>
                     <th>Student</th>
                     <th>Course</th>
                     <th>Amount</th>
@@ -246,9 +295,6 @@ export default function AdminPayments({ user }) {
                 <tbody>
                   {filteredPayments.map((payment) => (
                     <tr key={payment.id}>
-                      <td className="font-mono text-xs">
-                        {payment.invoice_number || payment.id.slice(0, 8)}
-                      </td>
                       <td>
                         <div>
                           <div className="font-medium text-white">
@@ -259,22 +305,28 @@ export default function AdminPayments({ user }) {
                           </div>
                         </div>
                       </td>
-                      <td>{payment.courses?.title || 'N/A'}</td>
-                      <td className="font-semibold">
+                      <td className="text-gray-300">
+                        {payment.courses?.title || 'N/A'}
+                      </td>
+                      <td className="font-mono text-green-400">
                         {formatCurrency(payment.amount)}
                       </td>
                       <td>
-                        <span className={`badge ${getMethodBadge(payment.method)}`}>
-                          {payment.method}
+                        <span className="text-gray-300 capitalize">
+                          {payment.payment_method?.replace('_', ' ')}
                         </span>
                       </td>
-                      <td>{getStatusBadge(payment.status)}</td>
-                      <td className="text-sm text-gray-400">
+                      <td>
+                        <span className={`badge ${getStatusBadge(payment.status)}`}>
+                          {payment.status}
+                        </span>
+                      </td>
+                      <td className="text-gray-400 text-sm">
                         {formatDate(payment.created_at)}
                       </td>
                       <td>
                         <div className="flex items-center space-x-2">
-                          {payment.status === 'pending' && payment.method === 'bank' && (
+                          {payment.status === 'pending' && (
                             <>
                               <button
                                 onClick={() => handleApprovePayment(payment.id)}
@@ -293,23 +345,10 @@ export default function AdminPayments({ user }) {
                             </>
                           )}
                           
-                          {payment.receipt_url && (
+                          {payment.status === 'approved' && (
                             <a
-                              href={payment.receipt_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              href={`/api/invoice/generate?paymentId=${payment.id}`}
                               className="text-blue-400 hover:text-blue-300"
-                              title="View Receipt"
-                            >
-                              <FiEye className="w-5 h-5" />
-                            </a>
-                          )}
-                          
-                          {payment.invoice_url && (
-                            <a
-                              href={payment.invoice_url}
-                              download
-                              className="text-primary-400 hover:text-primary-300"
                               title="Download Invoice"
                             >
                               <FiDownload className="w-5 h-5" />
@@ -322,8 +361,9 @@ export default function AdminPayments({ user }) {
                               setDetailsModalOpen(true)
                             }}
                             className="text-gray-400 hover:text-white"
+                            title="View Details"
                           >
-                            <FiMoreVertical className="w-5 h-5" />
+                            <FiEye className="w-5 h-5" />
                           </button>
                         </div>
                       </td>
@@ -334,7 +374,7 @@ export default function AdminPayments({ user }) {
             </div>
           )}
         </div>
-        
+
         {/* Payment Details Modal */}
         {selectedPayment && detailsModalOpen && (
           <>
@@ -342,204 +382,110 @@ export default function AdminPayments({ user }) {
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
               onClick={() => setDetailsModalOpen(false)}
             />
-            <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-dark-800 rounded-2xl shadow-2xl border border-dark-600 z-50 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-white mb-4">Payment Details</h3>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-dark-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              >
+                <div className="flex items-center justify-between p-6 border-b border-dark-600">
+                  <h2 className="text-xl font-bold text-white">Payment Details</h2>
+                  <button
+                    onClick={() => setDetailsModalOpen(false)}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    <FiX className="w-6 h-6" />
+                  </button>
+                </div>
                 
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="p-6">
+                  <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <p className="text-sm text-gray-400">Payment ID</p>
-                      <p className="text-white font-mono">{selectedPayment.id}</p>
+                      <h3 className="text-lg font-semibold text-white mb-4">Payment Info</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-gray-400">Order ID:</span>
+                          <span className="text-white ml-2 font-mono">{selectedPayment.order_id}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Amount:</span>
+                          <span className="text-white ml-2">{formatCurrency(selectedPayment.amount)}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Method:</span>
+                          <span className="text-white ml-2 capitalize">{selectedPayment.payment_method?.replace('_', ' ')}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Status:</span>
+                          <span className={`ml-2 badge ${getStatusBadge(selectedPayment.status)}`}>
+                            {selectedPayment.status}
+                          </span>
+                        </div>
+                      </div>
                     </div>
+                    
                     <div>
-                      <p className="text-sm text-gray-400">Invoice Number</p>
-                      <p className="text-white">{selectedPayment.invoice_number || 'N/A'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Student</p>
-                      <p className="text-white">{selectedPayment.profiles?.name}</p>
-                      <p className="text-sm text-gray-500">{selectedPayment.profiles?.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Course</p>
-                      <p className="text-white">{selectedPayment.courses?.title}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Amount</p>
-                      <p className="text-white text-xl font-bold">
-                        {formatCurrency(selectedPayment.amount)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Payment Method</p>
-                      <p className="text-white capitalize">{selectedPayment.method}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Status</p>
-                      {getStatusBadge(selectedPayment.status)}
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Created At</p>
-                      <p className="text-white">{formatDate(selectedPayment.created_at)}</p>
+                      <h3 className="text-lg font-semibold text-white mb-4">Student Info</h3>
+                      <div className="space-y-3">
+                        <div>
+                          <span className="text-gray-400">Name:</span>
+                          <span className="text-white ml-2">{selectedPayment.profiles?.name}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Email:</span>
+                          <span className="text-white ml-2">{selectedPayment.profiles?.email}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Phone:</span>
+                          <span className="text-white ml-2">{selectedPayment.profiles?.phone || 'N/A'}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Course:</span>
+                          <span className="text-white ml-2">{selectedPayment.courses?.title}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   
-                  {selectedPayment.payment_id && (
-                    <div>
-                      <p className="text-sm text-gray-400">Transaction ID</p>
-                      <p className="text-white font-mono">{selectedPayment.payment_id}</p>
+                  <div className="mt-6 pt-6 border-t border-dark-600">
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm text-gray-400">
+                        Created: {formatDate(selectedPayment.created_at)}
+                        {selectedPayment.updated_at !== selectedPayment.created_at && (
+                          <div>Updated: {formatDate(selectedPayment.updated_at)}</div>
+                        )}
+                      </div>
+                      
+                      {selectedPayment.status === 'pending' && (
+                        <div className="flex space-x-3">
+                          <button
+                            onClick={() => {
+                              handleRejectPayment(selectedPayment.id)
+                              setDetailsModalOpen(false)
+                            }}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleApprovePayment(selectedPayment.id)
+                              setDetailsModalOpen(false)
+                            }}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            Approve
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  
-                  {selectedPayment.notes && (
-                    <div>
-                      <p className="text-sm text-gray-400">Notes</p>
-                      <p className="text-white">{selectedPayment.notes}</p>
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-end space-x-3 pt-4 border-t border-dark-700">
-                    {selectedPayment.status === 'pending' && selectedPayment.method === 'bank' && (
-                      <>
-                        <button
-                          onClick={() => {
-                            handleApprovePayment(selectedPayment.id)
-                            setDetailsModalOpen(false)
-                          }}
-                          className="btn-primary"
-                        >
-                          Approve Payment
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleRejectPayment(selectedPayment.id)
-                            setDetailsModalOpen(false)
-                          }}
-                          className="btn-secondary"
-                        >
-                          Reject
-                        </button>
-                      </>
-                    )}
-                    
-                    <button
-                      onClick={() => setDetailsModalOpen(false)}
-                      className="btn-ghost"
-                    >
-                      Close
-                    </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </>
         )}
       </div>
     </AdminLayout>
   )
-}larSign className="w-8 h-8 text-primary-400" />
-            </div>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Pending</p>
-                <p className="text-2xl font-bold text-yellow-400 mt-1">{stats.pending}</p>
-              </div>
-              <FiClock className="w-8 h-8 text-yellow-400" />
-            </div>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Approved</p>
-                <p className="text-2xl font-bold text-green-400 mt-1">{stats.approved}</p>
-              </div>
-              <FiCheckCircle className="w-8 h-8 text-green-400" />
-            </div>
-          </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="card"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Total Revenue</p>
-                <p className="text-xl font-bold text-white mt-1">
-                  {formatCurrency(stats.totalRevenue)}
-                </p>
-              </div>
-              <FiTrendingUp className="w-8 h-8 text-green-400" />
-            </div>
-          </motion.div>
-        </div>
-        
-        {/* Filters */}
-        <div className="card mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1">
-              <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Search by name, email, course..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input pl-10 w-full"
-                />
-              </div>
-            </div>
-            
-            {/* Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="input"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="failed">Failed</option>
-            </select>
-            
-            {/* Method Filter */}
-            <select
-              value={methodFilter}
-              onChange={(e) => setMethodFilter(e.target.value)}
-              className="input"
-            >
-              <option value="all">All Methods</option>
-              <option value="payhere">PayHere</option>
-              <option value="stripe">Stripe</option>
-              <option value="bank">Bank Transfer</option>
-            </select>
-          </div>
-        </div>
-        
-        {/* Payments Table */}
-        <div className="card overflow-hidden">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="spinner"></div>
-            </div>
-          ) : filteredPayments.length === 0 ? (
-            <div className="text-center py-12">
-              <FiDol
+}

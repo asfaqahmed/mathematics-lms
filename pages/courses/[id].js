@@ -44,31 +44,43 @@ export default function CourseDetail({ user }) {
       setCourse(courseData)
       
       // Fetch lessons
+      console.log('Fetching lessons for course:', id);
       const { data: lessonsData, error: lessonsError } = await supabase
         .from('lessons')
         .select('*')
         .eq('course_id', id)
-        .order('order_index')
+        .order('order', { ascending: true })
       
-      if (lessonsError) throw lessonsError
-      setLessons(lessonsData || [])
+      console.log('Lessons query result:', { lessonsData, lessonsError });
+      
+      if (lessonsError) {
+        console.error('Lessons error:', lessonsError);
+        // Don't throw error, just set empty lessons array
+        setLessons([]);
+      } else {
+        setLessons(lessonsData || []);
+      }
       
       // Set first lesson as active
       if (lessonsData && lessonsData.length > 0) {
         setActiveLesson(lessonsData[0])
       }
       
-      // Check if user has access
+      // Check if user has access via payments table
       if (user) {
-        const { data: purchase } = await supabase
-          .from('purchases')
+        const { data: payment, error: paymentError } = await supabase
+          .from('payments')
           .select('*')
           .eq('user_id', user.id)
           .eq('course_id', id)
-          .eq('access_granted', true)
+          .in('status', ['completed', 'approved', 'success'])
           .single()
         
-        setHasAccess(!!purchase)
+        if (paymentError) {
+          console.log('Payment check error:', paymentError)
+        }
+        
+        setHasAccess(!!payment)
       }
       
     } catch (error) {
