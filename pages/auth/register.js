@@ -134,7 +134,7 @@ export default function Register() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/">
+          <Link href="/" legacyBehavior>
             <a className="inline-flex items-center space-x-3 group">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-500 rounded-lg blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -278,11 +278,11 @@ export default function Register() {
               />
               <label htmlFor="terms" className="ml-2 text-sm text-gray-400">
                 I agree to the{' '}
-                <Link href="/terms">
+                <Link href="/terms" legacyBehavior>
                   <a className="text-primary-400 hover:text-primary-300">Terms of Service</a>
                 </Link>
                 {' '}and{' '}
-                <Link href="/privacy">
+                <Link href="/privacy" legacyBehavior>
                   <a className="text-primary-400 hover:text-primary-300">Privacy Policy</a>
                 </Link>
               </label>
@@ -308,7 +308,7 @@ export default function Register() {
           {/* Sign In Link */}
           <p className="text-center text-gray-400 mt-8">
             Already have an account?{' '}
-            <Link href="/auth/login">
+            <Link href="/auth/login" legacyBehavior>
               <a className="text-primary-400 hover:text-primary-300 font-medium">
                 Sign in
               </a>
