@@ -28,14 +28,14 @@ export default function Contact({ user }) {
     {
       icon: FiPhone,
       title: 'Phone',
-      content: '+94 77 123 4567',
-      link: 'tel:+94771234567'
+      content: '+94 75 660 5254',
+      link: 'tel:+94 75 660 5254'
     },
     {
       icon: FaWhatsapp,
       title: 'WhatsApp',
-      content: '+94 77 123 4567',
-      link: 'https://wa.me/94771234567'
+      content: '+94 75 660 5254',
+      link: 'https://wa.me/+94 75 660 5254'
     },
     {
       icon: FiMapPin,

@@ -163,7 +163,7 @@ export const SOCIAL_LINKS = {
 // Contact Info
 export const CONTACT_INFO = {
   EMAIL: 'support@mathpro.lk',
-  PHONE: '+94 77 123 4567',
+  PHONE: '+94 75 660 5254',
   WHATSAPP: '94771234567',
   ADDRESS: 'Colombo, Sri Lanka'
 }
