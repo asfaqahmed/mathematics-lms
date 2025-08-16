@@ -54,8 +54,11 @@ export default function Courses({ user }) {
       const { data, error } = await supabase
         .from('courses')
         .select('*')
-        .eq('published', true)
+        // .eq('created_at', true)
       
+      console.log('Fetched courses:', data);
+      
+
       if (error) throw error
       setCourses(data || [])
       setFilteredCourses(data || [])
