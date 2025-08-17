@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       .select('*')
       .eq('user_id', userId)
       .eq('course_id', courseId)
-      .eq('status', 'paid')
+      .eq('status', 'approved')
       .single()
 
     if (paymentCheckError && paymentCheckError.code !== 'PGRST116') {

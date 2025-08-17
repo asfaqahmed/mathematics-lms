@@ -1,10 +1,7 @@
-import Stripe from 'stripe'
 import { buffer } from 'micro'
+import { verifyWebhookSignature, handleWebhookEvent } from '../../../lib/stripe'
 import { supabase } from '../../../lib/supabase-admin'
 import { sendEmail } from '../../../lib/email'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 export const config = {
   api: {
