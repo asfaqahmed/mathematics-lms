@@ -15,7 +15,7 @@ export default function PaymentModal({ isOpen, onClose, course, user }) {
   const [bankReceipt, setBankReceipt] = useState(null)
   
   const formatPrice = (price) => {
-    return `LKR ${(price / 100).toLocaleString('en-US', {
+    return `LKR ${(price).toLocaleString('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     })}`
@@ -53,7 +53,7 @@ export default function PaymentModal({ isOpen, onClose, course, user }) {
         notify_url: `${window.location.origin}/api/payments/payhere-callback`,
         order_id: payment.id.toString(),
         items: course.title,
-        amount: (course.price / 100).toFixed(2),
+        amount: (course.price).toFixed(2),
         currency: 'LKR',
         first_name: user.name?.split(' ')[0] || 'John',
         last_name: user.name?.split(' ').slice(1).join(' ') || 'Doe',

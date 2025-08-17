@@ -41,20 +41,21 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'User not found' })
     }
 
-    // Check if user already enrolled
-    const { data: existingEnrollment, error: enrollmentError } = await supabase
-      .from('enrollments')
+    // Check if user already has access via payments table
+    const { data: existingPayment, error: paymentCheckError } = await supabase
+      .from('payments')
       .select('*')
       .eq('user_id', userId)
       .eq('course_id', courseId)
+      .eq('status', 'paid')
       .single()
 
-    if (enrollmentError && enrollmentError.code !== 'PGRST116') {
-      throw enrollmentError
+    if (paymentCheckError && paymentCheckError.code !== 'PGRST116') {
+      throw paymentCheckError
     }
 
-    if (existingEnrollment) {
-      return res.status(400).json({ error: 'User already enrolled in this course' })
+    if (existingPayment) {
+      return res.status(400).json({ error: 'User already has access to this course' })
     }
 
     // Create payment record
@@ -88,7 +89,7 @@ export default async function handler(req, res) {
               name: course.title,
               description: course.description,
             },
-            unit_amount: Math.round(course.price / 100), // Convert LKR cents to USD cents (rough conversion)
+            unit_amount: Math.round(course.price ), // Convert LKR cents to USD cents (rough conversion)
           },
           quantity: 1,
         },

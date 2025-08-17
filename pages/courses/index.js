@@ -280,7 +280,7 @@ export default function Courses({ user }) {
                         <p className="text-gray-400 mb-4">{course.description}</p>
                         <div className="flex items-center justify-between">
                           <span className="text-2xl font-bold text-white">
-                            LKR {(course.price / 100).toLocaleString()}
+                            LKR {(course.price ).toLocaleString()}
                           </span>
                           <a
                             href={`/courses/${course.id}`}

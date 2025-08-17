@@ -67,7 +67,7 @@ export default function EditCourse({ user }) {
       
       setCourseData({
         ...course,
-        price: course.price / 100 // Convert from cents
+        price: course.price // Convert from cents
       })
       
       // Fetch lessons

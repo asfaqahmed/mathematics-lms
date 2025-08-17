@@ -42,6 +42,9 @@ export default function CourseDetail({ user }) {
       
       if (courseError) throw courseError
       setCourse(courseData)
+
+      console.log('Course data fetched:', courseData);
+      
       
       // Fetch lessons
       console.log('Fetching lessons for course:', id);
@@ -73,7 +76,7 @@ export default function CourseDetail({ user }) {
           .select('*')
           .eq('user_id', user.id)
           .eq('course_id', id)
-          .in('status', ['completed', 'approved', 'success'])
+          .eq('status', 'paid')
           .single()
         
         if (paymentError) {
@@ -172,7 +175,7 @@ export default function CourseDetail({ user }) {
               transition={{ duration: 0.5 }}
             >
               <div className="flex items-center space-x-3 mb-4">
-                <span className="badge badge-primary">{course.category}</span>
+                <span className="badge badge-primary">{course?.category || 'Course'}</span>
                 {hasAccess && (
                   <span className="badge badge-success">
                     <FiCheck className="mr-1" /> Enrolled
@@ -181,11 +184,11 @@ export default function CourseDetail({ user }) {
               </div>
               
               <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-4">
-                {course.title}
+                {course?.title || 'Course Title'}
               </h1>
               
               <p className="text-xl text-gray-400 mb-6">
-                {course.description}
+                {course?.description || 'Course description'}
               </p>
               
               {/* Course Stats */}
@@ -221,7 +224,7 @@ export default function CourseDetail({ user }) {
                   >
                     <span>Enroll Now</span>
                     <span className="text-xl font-bold">
-                      LKR {(course.price / 100).toLocaleString()}
+                      LKR {course?.price?.toLocaleString() || '0'}
                     </span>
                   </button>
                   <button className="btn-secondary flex items-center justify-center space-x-2">
@@ -251,7 +254,7 @@ export default function CourseDetail({ user }) {
               className="relative"
             >
               <div className="aspect-video rounded-2xl overflow-hidden glass">
-                {course.intro_video ? (
+                {course?.intro_video ? (
                   <iframe
                     src={getYouTubeEmbedUrl(course.intro_video)}
                     className="w-full h-full"
@@ -259,8 +262,8 @@ export default function CourseDetail({ user }) {
                   />
                 ) : (
                   <img
-                    src={course.thumbnail || '/api/placeholder/800/450'}
-                    alt={course.title}
+                    src={course?.thumbnail || '/api/placeholder/800/450'}
+                    alt={course?.title || 'Course'}
                     className="w-full h-full object-cover"
                   />
                 )}
