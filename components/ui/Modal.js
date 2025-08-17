@@ -105,20 +105,27 @@ export default function Modal({
 }
 
 // Modal compound components
-Modal.Header = ({ children, className = '' }) => (
+const ModalHeader = ({ children, className = '' }) => (
   <div className={`p-6 border-b border-dark-600 ${className}`}>
     {children}
   </div>
 )
+ModalHeader.displayName = 'Modal.Header'
 
-Modal.Body = ({ children, className = '' }) => (
+const ModalBody = ({ children, className = '' }) => (
   <div className={`p-6 ${className}`}>
     {children}
   </div>
 )
+ModalBody.displayName = 'Modal.Body'
 
-Modal.Footer = ({ children, className = '' }) => (
+const ModalFooter = ({ children, className = '' }) => (
   <div className={`p-6 border-t border-dark-600 bg-dark-700/30 ${className}`}>
     {children}
   </div>
 )
+ModalFooter.displayName = 'Modal.Footer'
+
+Modal.Header = ModalHeader
+Modal.Body = ModalBody
+Modal.Footer = ModalFooter
