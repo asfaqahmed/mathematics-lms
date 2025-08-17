@@ -241,7 +241,7 @@ export default function Home({ user }) {
             </div>
           ) : (
             <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
+              {/* <div className="text-gray-400 mb-4">
                 <FiBook className="w-16 h-16 mx-auto mb-4 opacity-50" />
                 <h3 className="text-xl font-semibold text-white mb-2">No courses available yet</h3>
                 <p className="text-gray-400 mb-6">Add some courses to showcase them here.</p>
@@ -261,7 +261,7 @@ export default function Home({ user }) {
                 >
                   Add Sample Courses
                 </button>
-              </div>
+              </div> */}
             </div>
           )}
           

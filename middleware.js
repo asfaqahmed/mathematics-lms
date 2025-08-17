@@ -8,6 +8,7 @@ export async function middleware(req) {
   
   // Refresh session to ensure it's properly available
   await supabase.auth.getSession()
+  
   // Get user to ensure session is available
   const {
     data: { user },
