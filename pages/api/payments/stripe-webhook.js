@@ -57,9 +57,9 @@ async function handleCheckoutSessionCompleted(session) {
     .update({
       status: 'approved',
       payment_id: session.payment_intent,
-      updated_at: new Date().toISOString()
+      approved_at: new Date().toISOString()
     })
-    .eq('stripe_session_id', session.id)
+    .eq('payment_id', session.id)
     .select(`
       *,
       profiles (name, email),
@@ -75,16 +75,18 @@ async function handleCheckoutSessionCompleted(session) {
   }
 
   // Add user to course
-  const { error: enrollmentError } = await supabase
-    .from('enrollments')
+  const { error: purchaseError } = await supabase
+    .from('purchases')
     .insert({
       user_id: payment.user_id,
       course_id: payment.course_id,
-      enrolled_at: new Date().toISOString()
+      payment_id: payment.id,
+      access_granted: true,
+      purchase_date: new Date().toISOString()
     })
 
-  if (enrollmentError && enrollmentError.code !== '23505') { // Ignore duplicate key error
-    console.error('Error creating enrollment:', enrollmentError)
+  if (purchaseError && purchaseError.code !== '23505') { // Ignore duplicate key error
+    console.error('Error creating purchase:', purchaseError)
   }
 
   // Send confirmation email
@@ -117,8 +119,7 @@ async function handlePaymentIntentFailed(paymentIntent) {
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
     .update({
-      status: 'failed',
-      updated_at: new Date().toISOString()
+      status: 'failed'
     })
     .eq('payment_id', paymentIntent.id)
     .select(`

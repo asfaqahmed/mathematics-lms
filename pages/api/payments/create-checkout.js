@@ -59,19 +59,13 @@ export default async function handler(req, res) {
     }
 
     // Create payment record
-    const orderId = `order_${Date.now()}_${userId}_${courseId}`
-    
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .insert({
         user_id: userId,
         course_id: courseId,
         amount: course.price,
-        payment_method: 'stripe',
-        status: 'pending',
-        order_id: orderId,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status: 'pending'
       })
       .select()
       .single()
@@ -101,8 +95,7 @@ export default async function handler(req, res) {
       metadata: {
         userId: userId,
         courseId: courseId,
-        paymentId: payment.id,
-        orderId: orderId
+        paymentId: payment.id
       },
     })
 
@@ -110,8 +103,7 @@ export default async function handler(req, res) {
     await supabase
       .from('payments')
       .update({
-        stripe_session_id: session.id,
-        updated_at: new Date().toISOString()
+        payment_id: session.id
       })
       .eq('id', payment.id)
 

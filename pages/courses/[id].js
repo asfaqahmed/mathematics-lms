@@ -33,25 +33,45 @@ export default function CourseDetail({ user }) {
   
   const fetchCourseData = async () => {
     try {
-      // Fetch course details
-      const { data: courseData, error: courseError } = await supabase
+      console.log('Fetching course with ID:', id);
+      
+      // Try to fetch course by ID first
+      let { data: courseData, error: courseError } = await supabase
         .from('courses')
         .select('*')
         .eq('id', id)
         .single()
       
-      if (courseError) throw courseError
+      // If that fails and the ID doesn't look like a UUID, try searching by slug/title
+      if (courseError && courseError.code === 'PGRST116' && !id.includes('-')) {
+        console.log('Course not found by ID, trying to find by slug or intro_video');
+        const { data: courseBySlug, error: slugError } = await supabase
+          .from('courses')
+          .select('*')
+          .eq('intro_video', id)
+          .single()
+        
+        if (!slugError && courseBySlug) {
+          courseData = courseBySlug;
+          courseError = null;
+        }
+      }
+      
+      if (courseError) {
+        console.error('Course fetch error:', courseError);
+        throw courseError;
+      }
       setCourse(courseData)
 
       console.log('Course data fetched:', courseData);
       
       
-      // Fetch lessons
-      console.log('Fetching lessons for course:', id);
+      // Fetch lessons using the actual course ID
+      console.log('Fetching lessons for course:', courseData.id);
       const { data: lessonsData, error: lessonsError } = await supabase
         .from('lessons')
         .select('*')
-        .eq('course_id', id)
+        .eq('course_id', courseData.id)
         .order('order', { ascending: true })
       
       console.log('Lessons query result:', { lessonsData, lessonsError });
@@ -69,21 +89,40 @@ export default function CourseDetail({ user }) {
         setActiveLesson(lessonsData[0])
       }
       
-      // Check if user has access via payments table
+      // Check if user has access via purchases table
       if (user) {
-        const { data: payment, error: paymentError } = await supabase
-          .from('payments')
+        console.log('Checking access for user:', user.id, 'course:', courseData.id);
+        
+        // Try purchases table first
+        const { data: purchase, error: purchaseError } = await supabase
+          .from('purchases')
           .select('*')
           .eq('user_id', user.id)
-          .eq('course_id', id)
-          .eq('status', 'paid')
+          .eq('course_id', courseData.id)
+          .eq('access_granted', true)
           .single()
         
-        if (paymentError) {
-          console.log('Payment check error:', paymentError)
+        if (purchaseError) {
+          console.log('Purchase check error:', purchaseError);
+          
+          // If purchases table fails, fall back to payments table
+          console.log('Falling back to payments table check');
+          const { data: payment, error: paymentError } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('course_id', courseData.id)
+            .eq('status', 'approved')
+            .single()
+          
+          if (paymentError) {
+            console.log('Payment check error:', paymentError);
+          }
+          
+          setHasAccess(!!payment);
+        } else {
+          setHasAccess(!!purchase);
         }
-        
-        setHasAccess(!!payment)
       }
       
     } catch (error) {
@@ -279,7 +318,7 @@ export default function CourseDetail({ user }) {
           <div className="grid lg:grid-cols-3 gap-8">
             {/* Video Player */}
             <div className="lg:col-span-2">
-              {activeLesson && (
+              {activeLesson ? (
                 <motion.div
                   key={activeLesson.id}
                   initial={{ opacity: 0, y: 20 }}
@@ -371,6 +410,18 @@ export default function CourseDetail({ user }) {
                     </div>
                   </div>
                 </motion.div>
+              ) : (
+                <div className="glass rounded-2xl p-6">
+                  <div className="text-center py-12">
+                    <FiPlay className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-white mb-2">
+                      No Content Available
+                    </h3>
+                    <p className="text-gray-400">
+                      This course doesn't have any lessons yet. Please check back later.
+                    </p>
+                  </div>
+                </div>
               )}
               
               {/* What You'll Learn */}
@@ -405,13 +456,22 @@ export default function CourseDetail({ user }) {
                 </h3>
                 
                 <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar">
-                  {lessons.map((lesson, index) => (
-                    <motion.div
-                      key={lesson.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                    >
+                  {lessons.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FiBook className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-400">No lessons available yet</p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Course content will be added soon
+                      </p>
+                    </div>
+                  ) : (
+                    lessons.map((lesson, index) => (
+                      <motion.div
+                        key={lesson.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                      >
                       <button
                         onClick={() => handleLessonClick(lesson)}
                         className={`w-full text-left p-4 rounded-lg transition-all ${
@@ -471,7 +531,8 @@ export default function CourseDetail({ user }) {
                         </div>
                       </button>
                     </motion.div>
-                  ))}
+                    ))
+                  )}
                 </div>
                 
                 {/* Course Progress */}

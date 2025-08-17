@@ -41,25 +41,25 @@ export default function About({ user }) {
     {
       name: 'Dr. Asfaq Ahmed',
       role: 'Founder & Lead Instructor',
-      image: '/api/placeholder/150/150',
+      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
       bio: '15+ years of teaching experience'
     },
     {
       name: 'Sarah Johnson',
       role: 'Senior Math Instructor',
-      image: '/api/placeholder/150/150',
+      image: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
       bio: 'PhD in Applied Mathematics'
     },
     {
       name: 'Michael Chen',
       role: 'Curriculum Developer',
-      image: '/api/placeholder/150/150',
+      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
       bio: 'Expert in educational technology'
     },
     {
       name: 'Priya Sharma',
       role: 'Student Success Manager',
-      image: '/api/placeholder/150/150',
+      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
       bio: 'Dedicated to student achievement'
     }
   ]
@@ -163,9 +163,12 @@ export default function About({ user }) {
             >
               <div className="aspect-video rounded-2xl overflow-hidden glass">
                 <img
-                  src="/api/placeholder/600/400"
-                  alt="Students learning"
+                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&h=400&fit=crop"
+                  alt="Students learning mathematics together"
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=600&h=400&fit=crop"
+                  }}
                 />
               </div>
               <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-gradient-to-r from-primary-500 to-purple-500 rounded-full opacity-20 blur-2xl"></div>
@@ -246,6 +249,9 @@ export default function About({ user }) {
                     src={member.image}
                     alt={member.name}
                     className="w-full h-full rounded-full object-cover bg-dark-800"
+                    onError={(e) => {
+                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&size=150&background=1f2937&color=ffffff&format=png`
+                    }}
                   />
                 </div>
                 <h3 className="text-lg font-semibold text-white mb-1">{member.name}</h3>
