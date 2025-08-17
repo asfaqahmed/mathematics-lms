@@ -77,6 +77,12 @@ export default async function handler(req, res) {
     const lkrToUsdRate = 300
     const usdAmount = course.price / lkrToUsdRate
 
+    // Derive a canonical site URL (prefer envs; fall back to request host for local/dev)
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ||
+      process.env.SITE_URL ||
+      `${(req.headers['x-forwarded-proto'] || 'https')}://${req.headers.host}`;
+
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -94,8 +100,8 @@ export default async function handler(req, res) {
         },
       ],
       mode: 'payment',
-      success_url: `https://www.asfaqahmed.com/courses/${courseId}?success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `https://www.asfaqahmed.com/courses/${courseId}?canceled=true`,
+      success_url: `${siteUrl}/courses/${courseId}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/courses/${courseId}?canceled=true`,
       customer_email: user.email,
       metadata: {
         userId: userId,
