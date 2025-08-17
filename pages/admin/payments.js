@@ -48,23 +48,35 @@ export default function AdminPayments({ user }) {
   
   const fetchPayments = async () => {
     try {
-      const { data, error } = await supabase
+      // First try with joins
+      let { data, error } = await supabase
         .from('payments')
         .select(`
           *,
-          profiles (
+          profiles!user_id (
             name,
             email,
             phone
           ),
-          courses (
+          courses!course_id (
             title,
             price
           )
         `)
         .order('created_at', { ascending: false })
 
-      if (error) throw error
+      // If join fails, try without joins
+      if (error) {
+        console.warn('Join query failed, trying simple query:', error)
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('payments')
+          .select('*')
+          .order('created_at', { ascending: false })
+        
+        if (simpleError) throw simpleError
+        data = simpleData
+      }
+
       setPayments(data || [])
     } catch (error) {
       console.error('Error fetching payments:', error)
@@ -105,8 +117,7 @@ export default function AdminPayments({ user }) {
       const { error } = await supabase
         .from('payments')
         .update({ 
-          status: 'approved',
-          updated_at: new Date().toISOString()
+          status: 'approved'
         })
         .eq('id', paymentId)
 
@@ -125,8 +136,7 @@ export default function AdminPayments({ user }) {
       const { error } = await supabase
         .from('payments')
         .update({ 
-          status: 'rejected',
-          updated_at: new Date().toISOString()
+          status: 'rejected'
         })
         .eq('id', paymentId)
 

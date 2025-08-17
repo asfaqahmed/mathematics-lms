@@ -14,6 +14,7 @@ import toast from 'react-hot-toast'
 export default function AdminDashboard({ user }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [authChecked, setAuthChecked] = useState(false)
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalCourses: 0,
@@ -28,9 +29,32 @@ export default function AdminDashboard({ user }) {
   const [popularCourses, setPopularCourses] = useState([])
   const [recentUsers, setRecentUsers] = useState([])
   
+  // Handle client-side auth check
   useEffect(() => {
-    checkAdminAccess()
+    const handleAuth = async () => {
+      // If no user prop, check auth directly
+      if (!user) {
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        if (!authUser) {
+          router.push('/auth/login?redirectTo=/admin')
+          return
+        }
+        // Wait for _app.js to set the user
+        return
+      }
+      
+      setAuthChecked(true)
+      checkAdminAccess()
+    }
+    
+    handleAuth()
   }, [user])
+  
+  useEffect(() => {
+    if (authChecked) {
+      checkAdminAccess()
+    }
+  }, [user, authChecked])
   
   const checkAdminAccess = async () => {
     if (!user) {

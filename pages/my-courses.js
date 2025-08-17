@@ -237,7 +237,7 @@ export default function MyCourses({ user }) {
                 {activeTab === 'all' && 'Start learning by enrolling in a course'}
               </p>
               {activeTab === 'all' && (
-                <Link href="/courses">
+                <Link href="/courses" legacyBehavior>
                   <a className="btn-primary">Browse Courses</a>
                 </Link>
               )}
@@ -312,7 +312,7 @@ export default function MyCourses({ user }) {
                       </div>
                       
                       {/* Action Button */}
-                      <Link href={`/courses/${course.id}`}>
+                      <Link href={`/courses/${course.id}`} legacyBehavior>
                         <a className="w-full btn-primary flex items-center justify-center space-x-2">
                           <FiPlay />
                           <span>{course.isCompleted ? 'Review Course' : 'Continue Learning'}</span>
@@ -333,7 +333,7 @@ export default function MyCourses({ user }) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-bold text-white">Recommended for You</h2>
-              <Link href="/courses">
+              <Link href="/courses" legacyBehavior>
                 <a className="text-primary-400 hover:text-primary-300 font-medium">
                   View All →
                 </a>

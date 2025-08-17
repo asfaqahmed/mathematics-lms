@@ -14,10 +14,16 @@ export default function Login() {
     email: '',
     password: ''
   })
+
   
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    
+    console.log('Login: Form submitted', {
+      email: formData.email,
+      redirectTo: router.query.redirectTo
+    })
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -27,16 +33,38 @@ export default function Login() {
       
       if (error) throw error
       
+      console.log('Login: Authentication successful', {
+        userId: data.user.id,
+        redirectTo: router.query.redirectTo
+      })
+      
       toast.success('Welcome back!')
       
-      // Get the redirect URL from query params
-      const redirectTo = router.query.redirectTo || '/courses'
+      // Get user profile to check role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single()
       
-      // Small delay to ensure session is set, then redirect
+      console.log('Login: Profile fetched', { profile })
+      
+      // Determine redirect URL based on role and query params
+      let redirectTo = router.query.redirectTo
+      
+      if (!redirectTo) {
+        // If no specific redirect requested, use role-based default
+        redirectTo = profile?.role === 'admin' ? '/admin' : '/courses'
+      }
+      
+      console.log('Login: Redirecting to:', redirectTo)
+      
+      // Use router.replace to avoid adding to history and wait longer for session
       setTimeout(() => {
-        router.push(redirectTo)
-      }, 100)
+        window.location.href = redirectTo
+      }, 500)
     } catch (error) {
+      console.error('Login: Authentication failed', error)
       toast.error(error.message || 'Invalid email or password')
     } finally {
       setLoading(false)

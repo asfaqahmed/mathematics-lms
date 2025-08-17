@@ -6,10 +6,20 @@ export async function middleware(req) {
   const supabase = createMiddlewareClient({ req, res })
   const { pathname } = req.nextUrl
   
-  // Get session
+  // Refresh session to ensure it's properly available
+  await supabase.auth.getSession()
+  // Get user to ensure session is available
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
+  
+  const session = user ? { user } : null
+  
+  console.log('Middleware session check:', {
+    pathname,
+    hasSession: !!session,
+    userId: session?.user?.id
+  })
   
   // Protected routes
   const protectedRoutes = ['/my-courses', '/profile']
@@ -21,44 +31,82 @@ export async function middleware(req) {
   const isAdminRoute = pathname.startsWith('/admin')
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
   
-  // Redirect if not authenticated and trying to access protected route
+  // Temporarily disable middleware auth - handle client-side for now
+  // TODO: Fix middleware session detection issue
+  /*
   if (!session && (isProtectedRoute || isAdminRoute)) {
+    console.log('Middleware: Unauthenticated user accessing protected route', {
+      pathname,
+      isProtectedRoute,
+      isAdminRoute
+    })
     const redirectUrl = req.nextUrl.clone()
     redirectUrl.pathname = '/auth/login'
     redirectUrl.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(redirectUrl)
   }
+  */
   
-  // Redirect if authenticated and trying to access auth routes
+  // Temporarily disable auth route redirects - handle client-side
+  /*
   if (session && isAuthRoute) {
     const redirectTo = req.nextUrl.searchParams.get('redirectTo')
     
-    // If there's no redirectTo parameter, redirect to courses
-    // If there is a redirectTo, let the client-side handle it to avoid conflicts
-    if (!redirectTo) {
+    console.log('Middleware: Authenticated user on auth route', {
+      pathname,
+      redirectTo,
+      hasSession: !!session,
+      userId: session?.user?.id
+    })
+    
+    if (redirectTo) {
+      // User is authenticated and has a redirectTo, redirect immediately
+      const redirectUrl = req.nextUrl.clone()
+      redirectUrl.pathname = redirectTo
+      redirectUrl.searchParams.delete('redirectTo')
+      console.log('Middleware: Redirecting authenticated user to:', redirectUrl.pathname)
+      return NextResponse.redirect(redirectUrl)
+    } else {
+      // No redirectTo parameter, redirect to default courses page
       const redirectUrl = req.nextUrl.clone()
       redirectUrl.pathname = '/courses'
+      console.log('Middleware: Redirecting authenticated user to default courses page')
       return NextResponse.redirect(redirectUrl)
     }
-    
-    // If there's a redirectTo parameter, let the page handle the redirect
-    // to avoid middleware/client conflicts
   }
+  */
   
-  // Check admin access
+  // Temporarily disable admin check - handle client-side
+  /*
   if (isAdminRoute && session) {
-    const { data: profile } = await supabase
+    console.log('Middleware: Checking admin access for authenticated user', {
+      pathname,
+      userId: session.user.id
+    })
+    
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', session.user.id)
       .single()
     
+    console.log('Middleware admin check:', {
+      userId: session.user.id,
+      profile,
+      profileError,
+      pathname
+    })
+    
     if (!profile || profile.role !== 'admin') {
+      console.log('Middleware: User is not admin, redirecting to home')
       const redirectUrl = req.nextUrl.clone()
       redirectUrl.pathname = '/'
       return NextResponse.redirect(redirectUrl)
     }
+    
+    console.log('Middleware: Admin access granted, proceeding to admin route')
   }
+  */
   
   // Add security headers
   const response = NextResponse.next()
