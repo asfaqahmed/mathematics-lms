@@ -97,22 +97,25 @@ export default function About({ user }) {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="text-center"
-              >
-                <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-primary-500/20">
-                  <stat.icon className="w-8 h-8 text-primary-400" />
-                </div>
-                <div className="text-3xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-gray-400">{stat.label}</div>
-              </motion.div>
-            ))}
+            {stats.map((stat, index) => {
+              const IconComponent = stat.icon
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="text-center"
+                >
+                  <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-primary-500/20">
+                    <IconComponent className="w-8 h-8 text-primary-400" />
+                  </div>
+                  <div className="text-3xl font-bold text-white mb-2">{stat.value}</div>
+                  <div className="text-gray-400">{stat.label}</div>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -196,22 +199,25 @@ export default function About({ user }) {
           </motion.div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {values.map((value, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="card text-center"
-              >
-                <div className="inline-flex items-center justify-center w-14 h-14 mb-4 rounded-lg bg-gradient-to-r from-primary-500/20 to-purple-500/20">
-                  <value.icon className="w-7 h-7 text-primary-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-white mb-2">{value.title}</h3>
-                <p className="text-gray-400">{value.description}</p>
-              </motion.div>
-            ))}
+            {values.map((value, index) => {
+              const IconComponent = value.icon
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="card text-center"
+                >
+                  <div className="inline-flex items-center justify-center w-14 h-14 mb-4 rounded-lg bg-gradient-to-r from-primary-500/20 to-purple-500/20">
+                    <IconComponent className="w-7 h-7 text-primary-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">{value.title}</h3>
+                  <p className="text-gray-400">{value.description}</p>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
       </section>
