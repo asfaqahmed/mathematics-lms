@@ -30,6 +30,37 @@ export default function CourseDetail({ user }) {
       fetchCourseData()
     }
   }, [id, user])
+
+  useEffect(() => {
+    // Check for Stripe success redirect
+    const urlParams = new URLSearchParams(window.location.search)
+    const success = urlParams.get('success')
+    const sessionId = urlParams.get('session_id')
+    
+    if (success === 'true' && sessionId) {
+      handlePaymentSuccess(sessionId)
+    }
+  }, [])
+
+  const handlePaymentSuccess = async (sessionId) => {
+    try {
+      const response = await fetch(`/api/payments/verify-session?session_id=${sessionId}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        toast.success('Payment successful! You now have access to this course.')
+        // Refresh course data to show new access
+        fetchCourseData()
+        // Clean up URL
+        window.history.replaceState({}, '', `/courses/${id}`)
+      } else {
+        toast.error('Payment verification failed. Please contact support.')
+      }
+    } catch (error) {
+      console.error('Error verifying payment:', error)
+      toast.error('Error verifying payment. Please refresh the page.')
+    }
+  }
   
   const fetchCourseData = async () => {
     try {

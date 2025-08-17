@@ -33,8 +33,8 @@ export default function MyCourses({ user }) {
   
   const fetchUserCourses = async () => {
     try {
-      // Fetch purchased courses
-      const { data: purchases, error } = await supabase
+      // Fetch purchased courses from purchases table
+      const { data: purchases, error: purchasesError } = await supabase
         .from('purchases')
         .select(`
           *,
@@ -46,12 +46,58 @@ export default function MyCourses({ user }) {
         .eq('user_id', user.id)
         .eq('access_granted', true)
       
-      if (error) throw error
+      // Also fetch from payments table as fallback
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          courses (
+            *,
+            lessons (*)
+          )
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
+      
+      // Combine both sources and deduplicate by course_id
+      const allCourses = []
+      const courseIds = new Set()
+      
+      // Add purchases
+      if (purchases && !purchasesError) {
+        purchases.forEach(purchase => {
+          if (!courseIds.has(purchase.course_id)) {
+            allCourses.push({
+              ...purchase,
+              source: 'purchase'
+            })
+            courseIds.add(purchase.course_id)
+          }
+        })
+      }
+      
+      // Add payments (only if not already added)
+      if (payments && !paymentsError) {
+        payments.forEach(payment => {
+          if (!courseIds.has(payment.course_id)) {
+            allCourses.push({
+              ...payment,
+              purchase_date: payment.approved_at || payment.created_at,
+              source: 'payment'
+            })
+            courseIds.add(payment.course_id)
+          }
+        })
+      }
+      
+      if (allCourses.length === 0 && purchasesError && paymentsError) {
+        throw purchasesError || paymentsError
+      }
       
       // Process courses with progress
       const coursesWithProgress = await Promise.all(
-        purchases.map(async (purchase) => {
-          const course = purchase.courses
+        allCourses.map(async (courseData) => {
+          const course = courseData.courses
           const totalLessons = course.lessons.length
           
           // Get progress (simulated for now)
@@ -60,7 +106,7 @@ export default function MyCourses({ user }) {
           
           return {
             ...course,
-            purchaseDate: purchase.purchase_date,
+            purchaseDate: courseData.purchase_date,
             progress: Math.round(progress),
             completedLessons,
             totalLessons,

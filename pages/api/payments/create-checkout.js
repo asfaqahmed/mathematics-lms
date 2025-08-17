@@ -94,8 +94,8 @@ export default async function handler(req, res) {
         },
       ],
       mode: 'payment',
-      success_url: `https://example.com/success?courseId=${courseId}`,
-      cancel_url: `https://example.com/cancel?courseId=${courseId}`,
+      success_url: `https://www.asfaqahmed.com/courses/${courseId}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://www.asfaqahmed.com/courses/${courseId}?canceled=true`,
       customer_email: user.email,
       metadata: {
         userId: userId,

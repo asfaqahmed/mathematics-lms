@@ -1,7 +1,10 @@
 import { buffer } from 'micro'
-import { verifyWebhookSignature, handleWebhookEvent } from '../../../lib/stripe'
+import Stripe from 'stripe'
 import { supabase } from '../../../lib/supabase-admin'
 import { sendEmail } from '../../../lib/email'
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 export const config = {
   api: {
@@ -93,15 +96,15 @@ async function handleCheckoutSessionCompleted(session) {
   try {
     await sendEmail({
       to: payment.profiles.email,
-      subject: 'Payment Confirmed - Course Access Granted',
       template: 'payment-success',
       data: {
         studentName: payment.profiles.name,
         courseName: payment.courses.title,
-        amount: payment.amount,
+        amount: payment.amount * 100, // Convert to cents for email template
         paymentId: session.payment_intent
       }
     })
+    console.log('Confirmation email sent to:', payment.profiles.email)
   } catch (emailError) {
     console.error('Error sending confirmation email:', emailError)
   }
