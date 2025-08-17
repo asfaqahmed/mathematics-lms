@@ -7,7 +7,13 @@ const nextConfig = {
       'plhiqkvxikrugafmnmqd.supabase.co',
       'images.unsplash.com',
       'i.ytimg.com',
-      'img.youtube.com'
+      'img.youtube.com',
+      'https://www.asfaqahmed.com',
+      'http://www.asfaqahmed.com',
+      'https://www.payhere.lk/lib/payhere.js',
+      'sandbox.payhere.lk',
+      'payhere.lk',
+      'asfaqahmed.com',
     ],
   },
   env: {

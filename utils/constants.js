@@ -1,7 +1,7 @@
 // Application Info
 export const APP_NAME = 'MathPro Academy'
 export const APP_DESCRIPTION = 'Excellence in Mathematics Education'
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://mathpro.lk'
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.asfaqahmed.com'
 export const APP_LOGO = '/logo.svg'
 
 // Currency

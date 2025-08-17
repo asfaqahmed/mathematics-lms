@@ -65,12 +65,17 @@ export default async function handler(req, res) {
         user_id: userId,
         course_id: courseId,
         amount: course.price,
-        status: 'pending'
+        status: 'pending',
+        method: 'payhere'
       })
       .select()
       .single()
 
     if (paymentError) throw paymentError
+
+    // Convert LKR to USD (approximate rate: 1 USD = 300 LKR)
+    const lkrToUsdRate = 300
+    const usdAmount = course.price / lkrToUsdRate
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -78,19 +83,19 @@ export default async function handler(req, res) {
       line_items: [
         {
           price_data: {
-            currency: 'usd', // Stripe doesn't support LKR, so we'll use USD
+            currency: 'usd',
             product_data: {
               name: course.title,
               description: course.description,
             },
-            unit_amount: Math.round(course.price ), // Convert LKR cents to USD cents (rough conversion)
+            unit_amount: Math.round(usdAmount * 100), // Convert USD to cents
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
-      success_url: `${req.headers.origin}/courses/${courseId}?success=true`,
-      cancel_url: `${req.headers.origin}/courses/${courseId}?canceled=true`,
+      success_url: `https://example.com/success?courseId=${courseId}`,
+      cancel_url: `https://example.com/cancel?courseId=${courseId}`,
       customer_email: user.email,
       metadata: {
         userId: userId,
@@ -110,6 +115,10 @@ export default async function handler(req, res) {
     res.status(200).json({ sessionId: session.id, url: session.url })
   } catch (error) {
     console.error('Error creating checkout session:', error)
-    res.status(500).json({ error: 'Failed to create checkout session' })
+    res.status(500).json({ 
+      error: 'Failed to create checkout session',
+      details: error.message,
+      type: error.type || 'unknown'
+    })
   }
 }

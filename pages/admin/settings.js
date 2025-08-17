@@ -124,7 +124,7 @@ export default function AdminSettings({ user }) {
         general: {
           ...settings.general,
           siteName: process.env.NEXT_PUBLIC_APP_NAME || 'MathPro Academy',
-          siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://mathpro.lk'
+          siteUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://www.asfaqahmed.com'
         },
         payment: {
           ...settings.payment,
