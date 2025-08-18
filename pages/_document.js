@@ -36,7 +36,7 @@ export default function Document() {
         {/* PayHere Script (for payment integration) */}
         <script
           type="text/javascript"
-          src="https://www.payhere.lk/lib/payhere.js"
+          src={process.env.NEXT_PUBLIC_PAYHERE_JS}
           async
         />
         

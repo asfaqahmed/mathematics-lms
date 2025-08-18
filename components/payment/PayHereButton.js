@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { FiCreditCard, FiLoader } from 'react-icons/fi'
 import axios from 'axios'
 import toast from 'react-hot-toast'
-import { createPayHerePayment, initializePayHerePayment } from '../../lib/payhere'
 
 export default function PayHereButton({ course, user, onSuccess, onError, disabled = false, className = '' }) {
   const [loading, setLoading] = useState(false)
@@ -21,39 +20,48 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
     setLoading(true)
 
     try {
-      // Create payment order
-      const response = await axios.post('/api/payments/payhere-checkout', {
-        courseId: course.id,
-        userId: user.id,
-        amount: course.price,
-        title: course.title
-      })
+      // Get hash from backend (like working implementation)
+      const response = await fetch('/api/payments/payhere?action=start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId: course.id,
+          userId: user.id,
+          amount: course.price.toString(),
+          title: course.title
+        }),
+      });
 
-      const { orderId, hash, merchantId } = response.data
+      if (!response.ok) throw new Error('Failed to initiate payment');
 
-      // Create PayHere payment object using utility
-      const payment = createPayHerePayment({
-        orderId,
-        amount: course.price,
+      const { hash, merchant_id, order_id, amount } = await response.json();
+
+      // Initialize PayHere payment (matching working implementation)
+      const payment = {
+        sandbox: true, // Set to false for production
+        merchant_id,
+        return_url: `${window.location.origin}/courses/${course.id}?payment=success`,
+        cancel_url: `${window.location.origin}/courses/${course.id}?payment=cancel`,
+        notify_url: `${window.location.origin}/api/payments/payhere?action=notify`,
+        order_id: order_id,
         items: course.title,
-        firstName: user.name?.split(' ')[0] || 'User',
-        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        amount: amount,
+        currency: 'LKR',
+        first_name: user.name?.split(' ')[0] || 'User',
+        last_name: user.name?.split(' ').slice(1).join(' ') || '',
         email: user.email,
-        phone: user.phone || '',
-        address: user.address || '',
+        phone: user.phone || '0000000000',
+        address: user.address || 'No Address',
         city: user.city || 'Colombo',
-        returnUrl: `${window.location.origin}/courses/${course.id}?payment=success`,
-        cancelUrl: `${window.location.origin}/courses/${course.id}?payment=cancelled`,
-        notifyUrl: `${window.location.origin}/api/payments/payhere-callback`,
-        customFields: {
-          custom_1: course.id,
-          custom_2: user.id
-        }
-      })
+        country: 'Sri Lanka',
+        hash,
+      };
 
-      // Initialize PayHere payment using utility
-      await initializePayHerePayment(payment, {
-        onCompleted: (orderId) => {
+      // Launch PayHere checkout (matching working implementation)
+      if (window.payhere) {
+        window.payhere.onCompleted = function onCompleted(orderId) {
           console.log('Payment completed. OrderID:' + orderId)
           toast.success('Payment completed successfully!')
           if (onSuccess) onSuccess(orderId)
@@ -63,23 +71,29 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
           setTimeout(() => {
             window.location.reload()
           }, 2000)
-        },
-        onDismissed: () => {
+        }
+
+        window.payhere.onDismissed = function onDismissed() {
           console.log('Payment dismissed')
           toast.info('Payment was cancelled')
           setLoading(false)
-        },
-        onError: (error) => {
+        }
+
+        window.payhere.onError = function onError(error) {
           console.log('Error:' + error)
           toast.error('Payment failed: ' + error)
           if (onError) onError(error)
           setLoading(false)
         }
-      })
 
+        window.payhere.startPayment(payment);
+      } else {
+        console.error('PayHere SDK not loaded');
+        throw new Error('PayHere SDK not loaded');
+      }
     } catch (error) {
-      console.error('PayHere payment error:', error)
-      toast.error('Payment failed. Please try again.')
+      console.error('Payment error:', error);
+      toast.error('Payment initialization failed');
       if (onError) onError(error)
       setLoading(false)
     }
