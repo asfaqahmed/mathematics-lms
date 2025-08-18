@@ -38,13 +38,13 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
 
       const { hash, merchant_id, order_id, amount } = await response.json();
 
-      // Initialize PayHere payment (matching working implementation)
+      // Initialize PayHere payment (matching Stripe behavior)
       const payment = {
         sandbox: true, // Set to false for production
         merchant_id,
-        return_url: `${window.location.origin}/payment/success?order_id=${order_id}&course_id=${course.id}`,
-        cancel_url: `${window.location.origin}/payment/cancel?order_id=${order_id}&course_id=${course.id}`,
-        notify_url: `${window.location.origin}/api/payments/payhere?action=notify`,
+        return_url: `${window.location.origin}/payment/success?order_id=${order_id}&course_id=${course.id}&payment_id=${order_id}`,
+        cancel_url: `${window.location.origin}/courses/${course.id}?canceled=true`,
+        notify_url: `${window.location.origin}/api/payments/payhere-callback`,
         order_id: order_id,
         items: course.title,
         amount: amount,
@@ -59,29 +59,21 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
         hash,
       };
 
-      // Launch PayHere checkout (matching working implementation)
+      // Launch PayHere checkout (let PayHere handle redirects like Stripe does)
       if (window.payhere) {
         window.payhere.onCompleted = function onCompleted(orderId) {
           console.log('Payment completed. OrderID:' + orderId)
-          toast.success('Payment completed successfully!')
+          toast.success('Payment completed! Redirecting to success page...')
           if (onSuccess) onSuccess(orderId)
           setLoading(false)
-          
-          // Redirect to success page
-          setTimeout(() => {
-            window.location.href = `/payment/success?order_id=${orderId}&course_id=${course.id}&payment_id=${orderId}`
-          }, 1500)
+          // Let PayHere handle redirect via return_url (no manual redirect)
         }
 
         window.payhere.onDismissed = function onDismissed() {
           console.log('Payment dismissed')
           toast.info('Payment was cancelled')
           setLoading(false)
-          
-          // Redirect to cancel page
-          setTimeout(() => {
-            window.location.href = `/payment/cancel?course_id=${course.id}&reason=user_cancelled`
-          }, 1000)
+          // User will remain on current page
         }
 
         window.payhere.onError = function onError(error) {
@@ -89,11 +81,7 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
           toast.error('Payment failed: ' + error)
           if (onError) onError(error)
           setLoading(false)
-          
-          // Redirect to cancel page with error
-          setTimeout(() => {
-            window.location.href = `/payment/cancel?course_id=${course.id}&reason=payment_failed`
-          }, 1000)
+          // User will remain on current page
         }
 
         window.payhere.startPayment(payment);

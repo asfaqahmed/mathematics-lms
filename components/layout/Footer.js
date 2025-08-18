@@ -14,11 +14,11 @@ export default function Footer() {
     company: [
       { label: 'About Us', href: '/about' },
       { label: 'Contact', href: '/contact' },
-      { label: 'Careers', href: '/careers' },
-      { label: 'Blog', href: '/blog' }
+      // { label: 'Careers', href: '/careers' },
+      // { label: 'Blog', href: '/blog' }
     ],
     support: [
-      { label: 'Help Center', href: '/help' },
+      // { label: 'Help Center', href: '/help' },
       { label: 'Terms of Service', href: '/terms' },
       { label: 'Privacy Policy', href: '/privacy' },
       { label: 'Refund Policy', href: '/refund' }

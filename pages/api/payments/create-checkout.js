@@ -100,7 +100,7 @@ export default async function handler(req, res) {
         },
       ],
       mode: 'payment',
-      success_url: `${siteUrl}/courses/${courseId}?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${siteUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&course_id=${courseId}`,
       cancel_url: `${siteUrl}/courses/${courseId}?canceled=true`,
       customer_email: user.email,
       metadata: {

@@ -11,8 +11,8 @@ export default async function handler(req, res) {
   const action = searchParams.get('action');
   const body = req.body;
 
-  const merchant_id = process.env.PAYHERE_MERCHANT_ID;
-  const merchant_secret = process.env.PAYHERE_MERCHANT_SECRET;
+  const merchant_id = process.env.NEXT_PUBLIC_PAYHERE_MERCHANT_ID;
+  const merchant_secret = process.env.NEXT_PUBLIC_PAYHERE_MERCHANT_SECRET;
 
   if (!merchant_id || !merchant_secret) {
     return res.status(500).json({ error: 'PayHere credentials not configured' });

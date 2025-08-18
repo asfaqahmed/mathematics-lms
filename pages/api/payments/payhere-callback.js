@@ -113,7 +113,6 @@ export default async function handler(req, res) {
           const { sendEmail } = await import('../../../lib/email')
           await sendEmail({
             to: payment.profiles.email,
-            subject: 'Payment Confirmed - Course Access Granted',
             template: 'payment-success',
             data: {
               studentName: payment.profiles.name,
@@ -122,8 +121,9 @@ export default async function handler(req, res) {
               paymentId: payment_id
             }
           })
+          console.log('✅ Confirmation email sent successfully to:', payment.profiles.email)
         } catch (emailError) {
-          console.error('Error sending confirmation email:', emailError)
+          console.error('❌ Error sending confirmation email:', emailError)
         }
       }
 
