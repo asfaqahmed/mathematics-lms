@@ -67,6 +67,47 @@ export default async function handler(req, res) {
       if (payment) {
         console.log(`Payment successful for order: ${order_id}`)
         
+        // Create purchase record to grant course access
+        try {
+          const { data: existingPurchase } = await supabase
+            .from('purchases')
+            .select('id')
+            .eq('user_id', payment.user_id)
+            .eq('course_id', payment.course_id)
+            .single()
+
+          if (!existingPurchase) {
+            const { error: purchaseError } = await supabase
+              .from('purchases')
+              .insert({
+                user_id: payment.user_id,
+                course_id: payment.course_id,
+                payment_id: payment.id,
+                access_granted: true,
+                purchase_date: new Date().toISOString()
+              })
+
+            if (purchaseError) {
+              console.error('Error creating purchase record:', purchaseError)
+            } else {
+              console.log(`Purchase record created for user: ${payment.user_id}, course: ${payment.course_id}`)
+            }
+          } else {
+            // Update existing purchase to grant access
+            await supabase
+              .from('purchases')
+              .update({
+                access_granted: true,
+                payment_id: payment.id
+              })
+              .eq('id', existingPurchase.id)
+            
+            console.log(`Purchase access granted for existing record: ${existingPurchase.id}`)
+          }
+        } catch (purchaseError) {
+          console.error('Error handling purchase record:', purchaseError)
+        }
+        
         // Send confirmation email if email service is available
         try {
           const { sendEmail } = await import('../../../lib/email')

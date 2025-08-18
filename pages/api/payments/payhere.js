@@ -99,17 +99,62 @@ export default async function handler(req, res) {
 
     if (local_md5sig === md5sig && status_code === '2') {
       // Update payment status in database
-      const { error: updateError } = await supabase
+      const { data: payment, error: updateError } = await supabase
         .from('payments')
         .update({
           status: 'completed',
           payhere_payment_id: payment_id
         })
-        .eq('id', order_id);
+        .eq('id', order_id)
+        .select()
+        .single();
 
       if (updateError) {
         console.error('Payment update error:', updateError);
         return res.status(500).json({ error: 'Failed to update payment' });
+      }
+
+      if (payment) {
+        // Create purchase record to grant course access
+        try {
+          const { data: existingPurchase } = await supabase
+            .from('purchases')
+            .select('id')
+            .eq('user_id', payment.user_id)
+            .eq('course_id', payment.course_id)
+            .single()
+
+          if (!existingPurchase) {
+            const { error: purchaseError } = await supabase
+              .from('purchases')
+              .insert({
+                user_id: payment.user_id,
+                course_id: payment.course_id,
+                payment_id: payment.id,
+                access_granted: true,
+                purchase_date: new Date().toISOString()
+              })
+
+            if (purchaseError) {
+              console.error('Error creating purchase record:', purchaseError)
+            } else {
+              console.log(`Purchase record created for user: ${payment.user_id}, course: ${payment.course_id}`)
+            }
+          } else {
+            // Update existing purchase to grant access
+            await supabase
+              .from('purchases')
+              .update({
+                access_granted: true,
+                payment_id: payment.id
+              })
+              .eq('id', existingPurchase.id)
+            
+            console.log(`Purchase access granted for existing record: ${existingPurchase.id}`)
+          }
+        } catch (purchaseError) {
+          console.error('Error handling purchase record:', purchaseError)
+        }
       }
 
       console.log(`Payment successful for order: ${order_id}`);

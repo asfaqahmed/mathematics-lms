@@ -42,8 +42,8 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
       const payment = {
         sandbox: true, // Set to false for production
         merchant_id,
-        return_url: `${window.location.origin}/courses/${course.id}?payment=success`,
-        cancel_url: `${window.location.origin}/courses/${course.id}?payment=cancel`,
+        return_url: `${window.location.origin}/payment/success?order_id=${order_id}&course_id=${course.id}`,
+        cancel_url: `${window.location.origin}/payment/cancel?order_id=${order_id}&course_id=${course.id}`,
         notify_url: `${window.location.origin}/api/payments/payhere?action=notify`,
         order_id: order_id,
         items: course.title,
@@ -67,16 +67,21 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
           if (onSuccess) onSuccess(orderId)
           setLoading(false)
           
-          // Refresh the page to update course access
+          // Redirect to success page
           setTimeout(() => {
-            window.location.reload()
-          }, 2000)
+            window.location.href = `/payment/success?order_id=${orderId}&course_id=${course.id}&payment_id=${orderId}`
+          }, 1500)
         }
 
         window.payhere.onDismissed = function onDismissed() {
           console.log('Payment dismissed')
           toast.info('Payment was cancelled')
           setLoading(false)
+          
+          // Redirect to cancel page
+          setTimeout(() => {
+            window.location.href = `/payment/cancel?course_id=${course.id}&reason=user_cancelled`
+          }, 1000)
         }
 
         window.payhere.onError = function onError(error) {
@@ -84,6 +89,11 @@ export default function PayHereButton({ course, user, onSuccess, onError, disabl
           toast.error('Payment failed: ' + error)
           if (onError) onError(error)
           setLoading(false)
+          
+          // Redirect to cancel page with error
+          setTimeout(() => {
+            window.location.href = `/payment/cancel?course_id=${course.id}&reason=payment_failed`
+          }, 1000)
         }
 
         window.payhere.startPayment(payment);

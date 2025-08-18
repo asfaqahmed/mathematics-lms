@@ -6,7 +6,7 @@ import {
   FiCheck, FiChevronDown, FiChevronUp, FiDownload,
   FiUsers, FiAward, FiTrendingUp
 } from 'react-icons/fi'
-import { supabase } from '../../lib/supabase'
+import { supabase, getCourse } from '../../lib/supabase'
 import Header from '../../components/layout/Header'
 import Footer from '../../components/layout/Footer'
 import PaymentModal from '../../components/payment/PaymentModal'
@@ -66,70 +66,60 @@ export default function CourseDetail({ user }) {
     try {
       console.log('Fetching course with ID:', id);
       
-      // Try to fetch course by ID first
-      let { data: courseData, error: courseError } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('id', id)
-        .single()
+      let currentCourse = null;
       
-      // If that fails and the ID doesn't look like a UUID, try searching by slug/title
-      if (courseError && courseError.code === 'PGRST116' && !id.includes('-')) {
-        console.log('Course not found by ID, trying to find by slug or intro_video');
-        const { data: courseBySlug, error: slugError } = await supabase
-          .from('courses')
-          .select('*')
-          .eq('intro_video', id)
-          .single()
+      // Use the getCourse helper which properly joins lessons
+      try {
+        currentCourse = await getCourse(id)
+        console.log('Course data fetched:', currentCourse);
         
-        if (!slugError && courseBySlug) {
-          courseData = courseBySlug;
-          courseError = null;
+        setCourse(currentCourse)
+        setLessons(currentCourse.lessons || [])
+        
+        // Set first lesson as active
+        if (currentCourse.lessons && currentCourse.lessons.length > 0) {
+          setActiveLesson(currentCourse.lessons[0])
+        }
+      } catch (courseError) {
+        // If getCourse fails and the ID doesn't look like a UUID, try searching by slug/intro_video
+        if (courseError && !id.includes('-')) {
+          console.log('Course not found by ID, trying to find by slug or intro_video');
+          const { data: courseBySlug, error: slugError } = await supabase
+            .from('courses')
+            .select(`
+              *,
+              lessons (*)
+            `)
+            .eq('intro_video', id)
+            .single()
+          
+          if (slugError) {
+            console.error('Course fetch error:', slugError);
+            throw slugError;
+          }
+          
+          currentCourse = courseBySlug
+          setCourse(currentCourse)
+          setLessons(currentCourse.lessons || [])
+          
+          if (currentCourse.lessons && currentCourse.lessons.length > 0) {
+            setActiveLesson(currentCourse.lessons[0])
+          }
+        } else {
+          throw courseError;
         }
       }
       
-      if (courseError) {
-        console.error('Course fetch error:', courseError);
-        throw courseError;
-      }
-      setCourse(courseData)
-
-      console.log('Course data fetched:', courseData);
-      
-      
-      // Fetch lessons using the actual course ID
-      console.log('Fetching lessons for course:', courseData.id);
-      const { data: lessonsData, error: lessonsError } = await supabase
-        .from('lessons')
-        .select('*')
-        .eq('course_id', courseData.id)
-        .order('order', { ascending: true })
-      
-      console.log('Lessons query result:', { lessonsData, lessonsError });
-      
-      if (lessonsError) {
-        console.error('Lessons error:', lessonsError);
-        // Don't throw error, just set empty lessons array
-        setLessons([]);
-      } else {
-        setLessons(lessonsData || []);
-      }
-      
-      // Set first lesson as active
-      if (lessonsData && lessonsData.length > 0) {
-        setActiveLesson(lessonsData[0])
-      }
-      
       // Check if user has access via purchases table
-      if (user) {
-        console.log('Checking access for user:', user.id, 'course:', courseData.id);
+      if (user && currentCourse) {
+        console.log('Checking access for user:', user.id, 'course:', currentCourse.id);
         
         // Try purchases table first
         const { data: purchase, error: purchaseError } = await supabase
           .from('purchases')
           .select('*')
           .eq('user_id', user.id)
-          .eq('course_id', courseData.id)
+          .eq('course_id', currentCourse.id)
           .eq('access_granted', true)
           .single()
         
@@ -142,7 +132,7 @@ export default function CourseDetail({ user }) {
             .from('payments')
             .select('*')
             .eq('user_id', user.id)
-            .eq('course_id', courseData.id)
+            .eq('course_id', currentCourse.id)
             .eq('status', 'approved')
             .single()
           
