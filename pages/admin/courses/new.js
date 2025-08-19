@@ -68,7 +68,7 @@ export default function NewCourse({ user }) {
         .from('courses')
         .insert([{
           ...courseData,
-          price: parseInt(courseData.price) * 100 // Convert to cents
+          price: parseInt(courseData.price)
         }])
         .select()
         .single()

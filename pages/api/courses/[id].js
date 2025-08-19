@@ -39,6 +39,10 @@ export default async function handler(req, res) {
       res.status(500).json({ error: 'Failed to fetch course' })
     }
   } else if (req.method === 'PUT') {
+    console.log('=== API COURSE UPDATE START ===')
+    console.log('Course ID:', id)
+    console.log('Request body:', req.body)
+    
     try {
       const {
         title,
@@ -47,10 +51,13 @@ export default async function handler(req, res) {
         category,
         level,
         thumbnail,
-        preview_video,
+        intro_video,
+        preview_video, // Support both field names for compatibility
         what_you_learn,
         requirements,
-        status
+        status,
+        featured,
+        published
       } = req.body
 
       const updateData = {
@@ -64,10 +71,16 @@ export default async function handler(req, res) {
       if (category !== undefined) updateData.category = category
       if (level !== undefined) updateData.level = level
       if (thumbnail !== undefined) updateData.thumbnail = thumbnail
-      if (preview_video !== undefined) updateData.preview_video = preview_video
+      // Handle both intro_video and preview_video field names
+      if (intro_video !== undefined) updateData.intro_video = intro_video
+      if (preview_video !== undefined) updateData.intro_video = preview_video
       if (what_you_learn !== undefined) updateData.what_you_learn = Array.isArray(what_you_learn) ? what_you_learn : []
       if (requirements !== undefined) updateData.requirements = Array.isArray(requirements) ? requirements : []
       if (status !== undefined) updateData.status = status
+      if (featured !== undefined) updateData.featured = featured
+      if (published !== undefined) updateData.published = published
+
+      console.log('Update data to be sent to database:', updateData)
 
       const { data: course, error } = await supabase
         .from('courses')
@@ -76,16 +89,35 @@ export default async function handler(req, res) {
         .select()
         .single()
 
-      if (error) throw error
+      console.log('Database update result:', { data: course, error })
+
+      if (error) {
+        console.error('Database update error:', error)
+        throw error
+      }
 
       if (!course) {
+        console.error('Course not found after update - Course ID:', id)
         return res.status(404).json({ error: 'Course not found' })
       }
 
+      console.log('✅ API course update successful')
+      console.log('Updated course:', course)
+      console.log('=== API COURSE UPDATE COMPLETED ===')
+
       res.status(200).json({ course })
     } catch (error) {
-      console.error('Error updating course:', error)
-      res.status(500).json({ error: 'Failed to update course' })
+      console.error('=== API COURSE UPDATE FAILED ===')
+      console.error('Error details:', error)
+      console.error('Error message:', error.message)
+      console.error('Error code:', error.code)
+      console.error('Full error object:', JSON.stringify(error, null, 2))
+      
+      res.status(500).json({ 
+        error: 'Failed to update course',
+        details: error.message,
+        code: error.code 
+      })
     }
   } else if (req.method === 'DELETE') {
     try {

@@ -198,22 +198,22 @@ export default function CourseDetail({ user }) {
     )
   }
   
-  if (!course) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
-        <Header user={user} />
-        <div className="flex items-center justify-center py-32">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-white mb-4">Course not found</h2>
-            <button onClick={() => router.push('/courses')} className="btn-primary">
-              Browse Courses
-            </button>
-          </div>
-        </div>
-        <Footer />
-      </div>
-    )
-  }
+  // if (!course) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">
+  //       <Header user={user} />
+  //       <div className="flex items-center justify-center py-32">
+  //         <div className="text-center">
+  //           <h2 className="text-2xl font-bold text-white mb-4">Course not found</h2>
+  //           <button onClick={() => router.push('/courses')} className="btn-primary">
+  //             Browse Courses
+  //           </button>
+  //         </div>
+  //       </div>
+  //       <Footer />
+  //     </div>
+  //   )
+  // }
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-dark-900">

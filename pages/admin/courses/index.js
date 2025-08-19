@@ -156,7 +156,7 @@ export default function AdminCourses({ user }) {
   }
   
   const formatCurrency = (amount) => {
-    return `LKR ${(amount / 100).toLocaleString()}`
+    return `LKR ${(amount).toLocaleString()}`
   }
   
   const categories = ['all', 'Algebra', 'Calculus', 'Geometry', 'Statistics', 'Trigonometry']

@@ -15,6 +15,7 @@ export default function EditCourse({ user }) {
   const { id } = router.query
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
   const [courseData, setCourseData] = useState({
     title: '',
     description: '',
@@ -67,7 +68,7 @@ export default function EditCourse({ user }) {
       
       setCourseData({
         ...course,
-        price: course.price // Convert from cents
+        price: course.price
       })
       
       // Fetch lessons
@@ -75,7 +76,7 @@ export default function EditCourse({ user }) {
         .from('lessons')
         .select('*')
         .eq('course_id', id)
-        .order('order_index')
+        .order('order')
       
       if (lessonsError) throw lessonsError
       
@@ -83,8 +84,14 @@ export default function EditCourse({ user }) {
       
     } catch (error) {
       console.error('Error fetching course:', error)
-      toast.error('Failed to load course')
-      router.push('/admin/courses')
+      
+      if (error.code === 'PGRST116') {
+        setError('Course not found')
+        toast.error('Course not found')
+      } else {
+        setError('Failed to load course: ' + error.message)
+        toast.error('Failed to load course: ' + error.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -98,84 +105,108 @@ export default function EditCourse({ user }) {
       return
     }
     
+    console.log('=== COURSE UPDATE START ===')
+    console.log('Course ID:', id)
+    console.log('Course Data:', courseData)
+    console.log('Lessons to update:', lessons)
+    console.log('Lessons to delete:', deletedLessons)
+    
     setSaving(true)
     
     try {
-      // Update course
-      const { error: courseError } = await supabase
-        .from('courses')
-        .update({
+      // Update course using API endpoint
+      console.log('Updating course via API with data:', {
+        title: courseData.title,
+        description: courseData.description,
+        category: courseData.category,
+        price: parseInt(courseData.price),
+        thumbnail: courseData.thumbnail,
+        intro_video: courseData.intro_video,
+        featured: courseData.featured,
+        published: courseData.published
+      })
+      
+      const courseResponse = await fetch(`/api/courses/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           title: courseData.title,
           description: courseData.description,
           category: courseData.category,
-          price: parseInt(courseData.price) * 100,
+          price: parseInt(courseData.price),
           thumbnail: courseData.thumbnail,
           intro_video: courseData.intro_video,
           featured: courseData.featured,
-          published: courseData.published,
-          updated_at: new Date().toISOString()
+          published: courseData.published
         })
-        .eq('id', id)
+      })
       
-      if (courseError) throw courseError
+      console.log('Course API response status:', courseResponse.status)
       
-      // Delete removed lessons
-      if (deletedLessons.length > 0) {
-        const { error: deleteError } = await supabase
-          .from('lessons')
-          .delete()
-          .in('id', deletedLessons)
-        
-        if (deleteError) throw deleteError
+      if (!courseResponse.ok) {
+        const errorData = await courseResponse.json()
+        console.error('Course update API error:', errorData)
+        throw new Error(errorData.error || 'Failed to update course')
       }
       
-      // Update existing lessons and add new ones
-      for (let i = 0; i < lessons.length; i++) {
-        const lesson = lessons[i]
+      const courseResult = await courseResponse.json()
+      console.log('Course update result:', courseResult)
+      console.log('✅ Course updated successfully via API')
+      
+      // Update lessons using API endpoint
+      if (lessons.length > 0 || deletedLessons.length > 0) {
+        console.log('Updating lessons via API...')
+        const lessonsResponse = await fetch(`/api/courses/${id}/lessons`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'bulk_update',
+            lessons: lessons,
+            deletedLessons: deletedLessons
+          })
+        })
         
-        if (lesson.id) {
-          // Update existing lesson
-          const { error } = await supabase
-            .from('lessons')
-            .update({
-              title: lesson.title,
-              description: lesson.description,
-              type: lesson.type,
-              content: lesson.content,
-              duration: parseInt(lesson.duration) || 0,
-              order_index: i + 1,
-              is_preview: lesson.is_preview
-            })
-            .eq('id', lesson.id)
-          
-          if (error) throw error
-        } else {
-          // Insert new lesson
-          const { error } = await supabase
-            .from('lessons')
-            .insert({
-              course_id: id,
-              title: lesson.title,
-              description: lesson.description,
-              type: lesson.type,
-              content: lesson.content,
-              duration: parseInt(lesson.duration) || 0,
-              order_index: i + 1,
-              is_preview: lesson.is_preview
-            })
-          
-          if (error) throw error
+        console.log('Lessons API response status:', lessonsResponse.status)
+        
+        if (!lessonsResponse.ok) {
+          const errorData = await lessonsResponse.json()
+          console.error('Lessons update API error:', errorData)
+          throw new Error(errorData.error || 'Failed to update lessons')
         }
+        
+        const lessonsResult = await lessonsResponse.json()
+        console.log('Lessons update result:', lessonsResult)
+        console.log('✅ All lessons processed successfully via API')
       }
+      console.log('=== COURSE UPDATE COMPLETED SUCCESSFULLY ===')
       
       toast.success('Course updated successfully!')
       router.push('/admin/courses')
       
     } catch (error) {
-      console.error('Error updating course:', error)
-      toast.error('Failed to update course')
+      console.error('=== COURSE UPDATE FAILED ===')
+      console.error('Error details:', error)
+      console.error('Error message:', error.message)
+      console.error('Error code:', error.code)
+      console.error('Full error object:', JSON.stringify(error, null, 2))
+      
+      // More specific error messages
+      if (error.code === 'PGRST301') {
+        toast.error('Database constraint violation - check your data')
+      } else if (error.code?.startsWith('23')) {
+        toast.error('Data validation error - please check all fields')
+      } else if (error.message?.includes('foreign key')) {
+        toast.error('Related data error - course or lesson references invalid')
+      } else {
+        toast.error(`Failed to update course: ${error.message || 'Unknown error'}`)
+      }
     } finally {
       setSaving(false)
+      console.log('=== COURSE UPDATE PROCESS ENDED ===')
     }
   }
   
@@ -267,6 +298,54 @@ export default function EditCourse({ user }) {
       <AdminLayout user={user}>
         <div className="flex justify-center items-center h-screen">
           <div className="spinner"></div>
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <AdminLayout user={user}>
+        <div className="p-6">
+          <div className="flex items-center mb-8">
+            <button
+              onClick={() => router.push('/admin/courses')}
+              className="mr-4 text-gray-400 hover:text-white"
+            >
+              <FiArrowLeft className="w-6 h-6" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-display font-bold text-white mb-2">
+                Edit Course
+              </h1>
+            </div>
+          </div>
+          
+          <div className="card text-center py-12">
+            <div className="text-red-400 mb-4">
+              <FiX className="w-16 h-16 mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold text-white mb-2">Error Loading Course</h3>
+            <p className="text-gray-400 mb-6">{error}</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => router.push('/admin/courses')}
+                className="btn-secondary"
+              >
+                Back to Courses
+              </button>
+              <button
+                onClick={() => {
+                  setError(null)
+                  setLoading(true)
+                  fetchCourseData()
+                }}
+                className="btn-primary"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
         </div>
       </AdminLayout>
     )

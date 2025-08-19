@@ -455,7 +455,7 @@ export default function AdminUsers({ user }) {
                           <div key={purchase.id} className="bg-dark-700 rounded-lg p-3">
                             <p className="text-white">{purchase.courses?.title}</p>
                             <p className="text-sm text-gray-400">
-                              LKR {(purchase.courses?.price / 100).toLocaleString()}
+                              LKR {purchase.courses?.price?.toLocaleString()}
                             </p>
                           </div>
                         ))}
