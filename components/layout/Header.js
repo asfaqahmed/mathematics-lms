@@ -100,19 +100,19 @@ export default function Header({ user }) {
                       exit={{ opacity: 0, y: -10 }}
                       className="absolute right-0 mt-2 w-48 rounded-lg bg-dark-800 border border-dark-600 shadow-xl overflow-hidden"
                     >
-                      <Link href="/my-courses" className="flex items-center space-x-2 px-4 py-3 text-gray-300 hover:bg-dark-700 hover:text-white transition-colors">
+                      <Link href="/my-courses" target='_blank' className="flex items-center space-x-2 px-4 py-3 text-gray-300 hover:bg-dark-700 hover:text-white transition-colors">
                         <FiBook />
                         <span>My Courses</span>
                       </Link>
                       
                       {user.role === 'admin' && (
-                        <Link href="/admin" className="flex items-center space-x-2 px-4 py-3 text-gray-300 hover:bg-dark-700 hover:text-white transition-colors">
+                        <Link href="/admin" target='_blank' className="flex items-center space-x-2 px-4 py-3 text-gray-300 hover:bg-dark-700 hover:text-white transition-colors">
                           <FiGrid />
                           <span>Admin Panel</span>
                         </Link>
                       )}
                       
-                      <Link href="/profile" className="flex items-center space-x-2 px-4 py-3 text-gray-300 hover:bg-dark-700 hover:text-white transition-colors">
+                      <Link href="/profile" target='_blank' className="flex items-center space-x-2 px-4 py-3 text-gray-300 hover:bg-dark-700 hover:text-white transition-colors">
                         <FiSettings />
                         <span>Profile</span>
                       </Link>
@@ -132,10 +132,10 @@ export default function Header({ user }) {
               </div>
             ) : (
               <>
-                <Link href="/auth/login" className="text-gray-300 hover:text-white font-medium transition-colors">
+                <Link href="/auth/login" target='_blank' className="text-gray-300 hover:text-white font-medium transition-colors">
                   Sign In
                 </Link>
-                <Link href="/auth/register" className="btn-primary">
+                <Link href="/auth/register" target='_blank' className="btn-primary">
                   Get Started
                 </Link>
               </>
@@ -178,6 +178,7 @@ export default function Header({ user }) {
               {user ? (
                 <>
                   <Link href="/my-courses"
+                  target='_blank'
                     className="block px-4 py-2 text-gray-300 hover:text-white hover:bg-dark-800 rounded-lg transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -186,6 +187,7 @@ export default function Header({ user }) {
                   
                   {user.role === 'admin' && (
                     <Link href="/admin"
+                    target='_blank'
                       className="block px-4 py-2 text-gray-300 hover:text-white hover:bg-dark-800 rounded-lg transition-colors"
                       onClick={() => setMobileMenuOpen(false)}
                     >
@@ -206,12 +208,14 @@ export default function Header({ user }) {
               ) : (
                 <>
                   <Link href="/auth/login"
+                  target='_blank'
                     className="block px-4 py-2 text-gray-300 hover:text-white hover:bg-dark-800 rounded-lg transition-colors"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Sign In
                   </Link>
                   <Link href="/auth/register"
+                  target='_blank'
                     className="block px-4 py-2 text-white bg-primary-500 hover:bg-primary-600 rounded-lg transition-colors text-center"
                     onClick={() => setMobileMenuOpen(false)}
                   >

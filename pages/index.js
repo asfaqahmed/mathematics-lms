@@ -132,8 +132,8 @@ export default function Home({ user }) {
                 </a>
               </Link>
               
-              <Link href="/auth/register" legacyBehavior>
-                <a className="group relative inline-flex items-center justify-center px-8 py-4 font-semibold text-gray-300 transition-all duration-200 bg-dark-800 border border-dark-600 rounded-lg hover:bg-dark-700 hover:text-white transform hover:scale-105">
+              <Link target='_blank' href="/auth/register" legacyBehavior>
+                <a className="group relative inline-flex items-center justify-center px-8 py-4 font-semibold text-gray-300 transition-all duration-200 bg-dark-800 border border-dark-600 rounded-lg hover:bg-dark-700 hover:text-white transform hover:scale-105" target='_blank'>
                   <span className="relative">Get Started Free</span>
                   <FiPlay className="ml-2" />
                 </a>
