@@ -20,8 +20,7 @@ export default async function handler(req, res) {
         *,
         profiles (
           name,
-          email,
-          phone
+          email
         ),
         courses (
           title,
@@ -40,13 +39,13 @@ export default async function handler(req, res) {
 
     // Generate invoice data
     const invoiceData = {
-      invoiceNumber: `INV-${payment.id.toString().padStart(6, '0')}`,
+      invoiceNumber: `INV-${payment.id.toString()}`,
       date: new Date(payment.created_at).toLocaleDateString(),
       dueDate: new Date(payment.created_at).toLocaleDateString(),
       
       // Company details
       company: {
-        name: 'Mathematics Learning Management System',
+        name: 'MathPro Academy',
         address: 'Colombo, Sri Lanka',
         email: 'support@mathslms.com',
         phone: '+94 11 234 5678'
@@ -56,7 +55,7 @@ export default async function handler(req, res) {
       customer: {
         name: payment.profiles.name || 'N/A',
         email: payment.profiles.email,
-        phone: payment.profiles.phone || 'N/A'
+        // phone: 'N/A'
       },
       
       // Items
@@ -70,9 +69,8 @@ export default async function handler(req, res) {
       ],
       
       // Totals
-      subtotal: payment.amount,
-      tax: 0,
-      total: payment.amount,
+      // subtotal: payment.amount,
+       total: payment.amount,
       
       // Payment info
       paymentMethod: payment.payment_method,

@@ -53,12 +53,11 @@ export default function AdminPayments({ user }) {
         .from('payments')
         .select(`
           *,
-          profiles!user_id (
+          profiles (
             name,
-            email,
-            phone
+            email
           ),
-          courses!course_id (
+          courses (
             title,
             price
           )
@@ -445,10 +444,10 @@ export default function AdminPayments({ user }) {
                           <span className="text-gray-400">Email:</span>
                           <span className="text-white ml-2">{selectedPayment.profiles?.email}</span>
                         </div>
-                        <div>
+                        {/* <div>
                           <span className="text-gray-400">Phone:</span>
                           <span className="text-white ml-2">{selectedPayment.profiles?.phone || 'N/A'}</span>
-                        </div>
+                        </div> */}
                         <div>
                           <span className="text-gray-400">Course:</span>
                           <span className="text-white ml-2">{selectedPayment.courses?.title}</span>
