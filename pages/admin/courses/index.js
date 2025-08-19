@@ -4,9 +4,10 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import {
   FiPlus, FiEdit, FiTrash2, FiEye, FiSearch,
-  FiBook, FiUsers, FiDollarSign, FiToggleLeft,
+  FiBook, FiUsers, FiToggleLeft,
   FiToggleRight, FiMoreVertical, FiVideo, FiFileText
 } from 'react-icons/fi'
+import { FaRupeeSign } from "react-icons/fa6";
 import { supabase, isAdmin } from '../../../lib/supabase'
 import AdminLayout from '../../../components/admin/AdminLayout'
 import toast from 'react-hot-toast'
@@ -248,7 +249,9 @@ export default function AdminCourses({ user }) {
                   {formatCurrency(courses.reduce((sum, c) => sum + c.revenue, 0))}
                 </p>
               </div>
-              <FiDollarSign className="w-8 h-8 text-green-400" />
+              
+              <FaRupeeSign className="w-8 h-8 text-green-400" />
+              
             </div>
           </motion.div>
         </div>
@@ -316,7 +319,7 @@ export default function AdminCourses({ user }) {
                     <th>Lessons</th>
                     <th>Students</th>
                     <th>Revenue</th>
-                    <th>Status</th>
+                    {/* <th>Status</th> */}
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -363,14 +366,14 @@ export default function AdminCourses({ user }) {
                       <td className="font-semibold text-green-400">
                         {formatCurrency(course.revenue)}
                       </td>
-                      <td>
+                      {/* <td>
                         <button
                           onClick={() => toggleCourseStatus(course.id, course.published)}
                           className={`badge ${course.published ? 'badge-success' : 'badge-warning'} cursor-pointer`}
                         >
                           {course.published ? 'Published' : 'Draft'}
                         </button>
-                      </td>
+                      </td> */}
                       <td>
                         <div className="flex items-center space-x-2">
                           <Link href={`/courses/${course.id}`} legacyBehavior>
