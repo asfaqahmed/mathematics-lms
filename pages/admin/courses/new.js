@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi'
 import { supabase, isAdmin } from '../../../lib/supabase'
 import AdminLayout from '../../../components/admin/AdminLayout'
+import VideoUpload from '../../../components/ui/VideoUpload'
 import toast from 'react-hot-toast'
 
 export default function NewCourse({ user }) {
@@ -20,9 +21,9 @@ export default function NewCourse({ user }) {
     price: '',
     thumbnail: '',
     intro_video: '',
-    featured: false,
-    published: false
+    featured: false
   })
+  const [introVideoSource, setIntroVideoSource] = useState('url')
   const [lessons, setLessons] = useState([])
   const [newLesson, setNewLesson] = useState({
     title: '',
@@ -30,7 +31,8 @@ export default function NewCourse({ user }) {
     type: 'video',
     content: '',
     duration: '',
-    is_preview: false
+    is_preview: false,
+    video_source: 'url' // 'url' or 'upload'
   })
   const [addingLesson, setAddingLesson] = useState(false)
   
@@ -115,7 +117,8 @@ export default function NewCourse({ user }) {
       type: 'video',
       content: '',
       duration: '',
-      is_preview: false
+      is_preview: false,
+      video_source: 'url'
     })
     setAddingLesson(false)
     toast.success('Lesson added')
@@ -143,26 +146,46 @@ export default function NewCourse({ user }) {
     try {
       setLoading(true)
       
-      const fileExt = file.name.split('.').pop()
-      const fileName = `course-${Date.now()}.${fileExt}`
-      const filePath = `courses/${fileName}`
+      // Convert file to base64
+      const reader = new FileReader()
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1] // Remove data:image/...;base64, prefix
+          
+          const response = await fetch('/api/thumbnails/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user_id: user.id,
+              image_data: base64Data,
+              filename: file.name
+            })
+          })
+          
+          const result = await response.json()
+          
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to upload thumbnail')
+          }
+          
+          setCourseData({ ...courseData, thumbnail: result.url })
+          toast.success('Thumbnail uploaded successfully!')
+          
+        } catch (error) {
+          console.error('Error uploading thumbnail:', error)
+          toast.error(error.message || 'Failed to upload thumbnail')
+        } finally {
+          setLoading(false)
+        }
+      }
       
-      const { error: uploadError } = await supabase.storage
-        .from('thumbnails')
-        .upload(filePath, file)
+      reader.readAsDataURL(file)
       
-      if (uploadError) throw uploadError
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('thumbnails')
-        .getPublicUrl(filePath)
-      
-      setCourseData({ ...courseData, thumbnail: publicUrl })
-      toast.success('Thumbnail uploaded')
     } catch (error) {
-      console.error('Error uploading thumbnail:', error)
-      toast.error('Failed to upload thumbnail')
-    } finally {
+      console.error('Error reading file:', error)
+      toast.error('Failed to read file')
       setLoading(false)
     }
   }
@@ -261,18 +284,65 @@ export default function NewCourse({ user }) {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Intro Video URL
+                      Intro Video {introVideoSource === 'url' ? 'URL' : 'Upload'}
                     </label>
-                    <div className="relative">
-                      <FiVideo className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                      <input
-                        type="url"
-                        value={courseData.intro_video}
-                        onChange={(e) => setCourseData({ ...courseData, intro_video: e.target.value })}
-                        className="input w-full pl-10"
-                        placeholder="https://youtube.com/watch?v=..."
-                      />
+                    
+                    {/* Video Source Selection */}
+                    <div className="flex items-center space-x-4 mb-3">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="intro_video_source"
+                          value="url"
+                          checked={introVideoSource === 'url'}
+                          onChange={(e) => {
+                            setIntroVideoSource(e.target.value)
+                            setCourseData({ ...courseData, intro_video: '' })
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-gray-300">YouTube URL</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="intro_video_source"
+                          value="upload"
+                          checked={introVideoSource === 'upload'}
+                          onChange={(e) => {
+                            setIntroVideoSource(e.target.value)
+                            setCourseData({ ...courseData, intro_video: '' })
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-sm text-gray-300">Upload Video</span>
+                      </label>
                     </div>
+                    
+                    {/* Video Input */}
+                    {introVideoSource === 'url' ? (
+                      <div className="relative">
+                        <FiVideo className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                        <input
+                          type="url"
+                          value={courseData.intro_video}
+                          onChange={(e) => setCourseData({ ...courseData, intro_video: e.target.value })}
+                          className="input w-full pl-10"
+                          placeholder="https://youtube.com/watch?v=..."
+                        />
+                      </div>
+                    ) : (
+                      <VideoUpload
+                        onUploadSuccess={(videoData) => {
+                          setCourseData({ ...courseData, intro_video: videoData.url })
+                          toast.success('Intro video uploaded successfully!')
+                        }}
+                        onUploadError={(error) => {
+                          toast.error('Failed to upload intro video')
+                        }}
+                        maxSizeMB={500}
+                      />
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -363,16 +433,58 @@ export default function NewCourse({ user }) {
                       
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Content {newLesson.type === 'video' ? 'URL' : ''}
+                          Content {newLesson.type === 'video' ? (newLesson.video_source === 'url' ? 'URL' : 'Upload') : ''}
                         </label>
                         {newLesson.type === 'video' ? (
-                          <input
-                            type="url"
-                            value={newLesson.content}
-                            onChange={(e) => setNewLesson({ ...newLesson, content: e.target.value })}
-                            className="input w-full"
-                            placeholder="https://youtube.com/watch?v=..."
-                          />
+                          <div className="space-y-4">
+                            {/* Video Source Selection */}
+                            <div className="flex items-center space-x-4">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name="video_source"
+                                  value="url"
+                                  checked={newLesson.video_source === 'url'}
+                                  onChange={(e) => setNewLesson({ ...newLesson, video_source: e.target.value, content: '' })}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-sm text-gray-300">YouTube URL</span>
+                              </label>
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name="video_source"
+                                  value="upload"
+                                  checked={newLesson.video_source === 'upload'}
+                                  onChange={(e) => setNewLesson({ ...newLesson, video_source: e.target.value, content: '' })}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-sm text-gray-300">Upload Video</span>
+                              </label>
+                            </div>
+                            
+                            {/* Video Input */}
+                            {newLesson.video_source === 'url' ? (
+                              <input
+                                type="url"
+                                value={newLesson.content}
+                                onChange={(e) => setNewLesson({ ...newLesson, content: e.target.value })}
+                                className="input w-full"
+                                placeholder="https://youtube.com/watch?v=..."
+                              />
+                            ) : (
+                              <VideoUpload
+                                onUploadSuccess={(videoData) => {
+                                  setNewLesson({ ...newLesson, content: videoData.url })
+                                  toast.success('Video uploaded successfully!')
+                                }}
+                                onUploadError={(error) => {
+                                  toast.error('Failed to upload video')
+                                }}
+                                maxSizeMB={500}
+                              />
+                            )}
+                          </div>
                         ) : (
                           <textarea
                             value={newLesson.content}
@@ -406,7 +518,8 @@ export default function NewCourse({ user }) {
                               type: 'video',
                               content: '',
                               duration: '',
-                              is_preview: false
+                              is_preview: false,
+                              video_source: 'url'
                             })
                           }}
                           className="btn-ghost"
@@ -555,16 +668,6 @@ export default function NewCourse({ user }) {
                       type="checkbox"
                       checked={courseData.featured}
                       onChange={(e) => setCourseData({ ...courseData, featured: e.target.checked })}
-                      className="w-5 h-5 rounded text-primary-500"
-                    />
-                  </label>
-                  
-                  <label className="flex items-center justify-between">
-                    <span className="text-gray-300">Publish Immediately</span>
-                    <input
-                      type="checkbox"
-                      checked={courseData.published}
-                      onChange={(e) => setCourseData({ ...courseData, published: e.target.checked })}
                       className="w-5 h-5 rounded text-primary-500"
                     />
                   </label>

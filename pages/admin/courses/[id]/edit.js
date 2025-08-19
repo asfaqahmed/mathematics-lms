@@ -33,7 +33,8 @@ export default function EditCourse({ user }) {
     type: 'video',
     content: '',
     duration: '',
-    is_preview: false
+    is_preview: false,
+    video_source: 'youtube'
   })
   const [addingLesson, setAddingLesson] = useState(false)
   const [deletedLessons, setDeletedLessons] = useState([])
@@ -223,7 +224,8 @@ export default function EditCourse({ user }) {
       type: 'video',
       content: '',
       duration: '',
-      is_preview: false
+      is_preview: false,
+      video_source: 'youtube'
     })
     setAddingLesson(false)
     toast.success('Lesson added')
@@ -528,13 +530,46 @@ export default function EditCourse({ user }) {
                       </div>
                       
                       {newLesson.type === 'video' ? (
-                        <input
-                          type="url"
-                          value={newLesson.content}
-                          onChange={(e) => setNewLesson({ ...newLesson, content: e.target.value })}
-                          className="input w-full"
-                          placeholder="Video URL"
-                        />
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="video_source"
+                                value="youtube"
+                                checked={newLesson.video_source !== 'upload'}
+                                onChange={(e) => setNewLesson({ ...newLesson, video_source: 'youtube' })}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-300">YouTube URL</span>
+                            </label>
+                            <label className="flex items-center space-x-2">
+                              <input
+                                type="radio"
+                                name="video_source"
+                                value="upload"
+                                checked={newLesson.video_source === 'upload'}
+                                onChange={(e) => setNewLesson({ ...newLesson, video_source: 'upload' })}
+                                className="w-4 h-4"
+                              />
+                              <span className="text-sm text-gray-300">Upload Video</span>
+                            </label>
+                          </div>
+                          
+                          {newLesson.video_source === 'upload' ? (
+                            <div className="p-3 border border-dashed border-gray-600 rounded-lg text-center">
+                              <p className="text-sm text-gray-400">Video upload available in full lesson editor</p>
+                            </div>
+                          ) : (
+                            <input
+                              type="url"
+                              value={newLesson.content}
+                              onChange={(e) => setNewLesson({ ...newLesson, content: e.target.value })}
+                              className="input w-full"
+                              placeholder="YouTube Video URL"
+                            />
+                          )}
+                        </div>
                       ) : (
                         <textarea
                           value={newLesson.content}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FiSave, FiX, FiPlay, FiBook } from 'react-icons/fi'
+import { FiSave, FiX, FiPlay, FiBook, FiUpload } from 'react-icons/fi'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
 import Card from '../ui/Card'
+import VideoUpload from '../ui/VideoUpload'
 import toast from 'react-hot-toast'
 
 export default function LessonForm({ lesson, courseId, onSave, onCancel, isLoading }) {
@@ -15,13 +16,16 @@ export default function LessonForm({ lesson, courseId, onSave, onCancel, isLoadi
     duration: '',
     order: 1,
     is_preview: false,
-    is_published: false
+    is_published: false,
+    video_source: 'youtube' // 'youtube' or 'upload'
   })
 
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
     if (lesson) {
+      // Determine video source based on content
+      const isYouTubeUrl = lesson.content && (lesson.content.includes('youtube.com') || lesson.content.includes('youtu.be'))
       setFormData({
         title: lesson.title || '',
         description: lesson.description || '',
@@ -30,7 +34,8 @@ export default function LessonForm({ lesson, courseId, onSave, onCancel, isLoadi
         duration: lesson.duration || '',
         order: lesson.order || 1,
         is_preview: lesson.is_preview || false,
-        is_published: lesson.is_published || false
+        is_published: lesson.is_published || false,
+        video_source: lesson.type === 'video' ? (isYouTubeUrl ? 'youtube' : 'upload') : 'youtube'
       })
     }
   }, [lesson])
@@ -59,7 +64,7 @@ export default function LessonForm({ lesson, courseId, onSave, onCancel, isLoadi
       newErrors.content = 'Content is required'
     }
     
-    if (formData.type === 'video' && formData.content && !isValidVideoUrl(formData.content)) {
+    if (formData.type === 'video' && formData.video_source === 'youtube' && formData.content && !isValidVideoUrl(formData.content)) {
       newErrors.content = 'Please enter a valid YouTube URL'
     }
     
@@ -98,6 +103,22 @@ export default function LessonForm({ lesson, courseId, onSave, onCancel, isLoadi
     { value: 'video', label: 'Video', icon: FiPlay },
     { value: 'article', label: 'Article', icon: FiBook }
   ]
+
+  const handleVideoUpload = (videoData) => {
+    setFormData(prev => ({
+      ...prev,
+      content: videoData.url,
+      video_source: 'upload'
+    }))
+    // Clear any content errors
+    if (errors.content) {
+      setErrors(prev => ({ ...prev, content: null }))
+    }
+  }
+
+  const handleVideoUploadError = (error) => {
+    console.error('Video upload error:', error)
+  }
 
   return (
     <motion.div
@@ -242,19 +263,95 @@ export default function LessonForm({ lesson, courseId, onSave, onCancel, isLoadi
             <h3 className="text-lg font-semibold text-white">Content</h3>
             
             {formData.type === 'video' ? (
-              <div>
-                <Input
-                  label="Video URL"
-                  name="content"
-                  value={formData.content}
-                  onChange={handleChange}
-                  error={errors.content}
-                  placeholder="https://youtube.com/watch?v=..."
-                  required
-                />
-                <p className="text-sm text-gray-400 mt-1">
-                  Currently supports YouTube videos. Paste the full YouTube URL.
-                </p>
+              <div className="space-y-4">
+                {/* Video Source Selection */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Video Source
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label
+                      className={`
+                        flex items-center justify-center space-x-2 p-3 border-2 rounded-lg cursor-pointer transition-all
+                        ${formData.video_source === 'youtube'
+                          ? 'border-primary-500 bg-primary-500/10'
+                          : 'border-dark-600 hover:border-dark-500'
+                        }
+                      `}
+                    >
+                      <input
+                        type="radio"
+                        name="video_source"
+                        value="youtube"
+                        checked={formData.video_source === 'youtube'}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <FiPlay className="w-4 h-4 text-primary-400" />
+                      <span className="text-white text-sm">YouTube URL</span>
+                    </label>
+                    
+                    <label
+                      className={`
+                        flex items-center justify-center space-x-2 p-3 border-2 rounded-lg cursor-pointer transition-all
+                        ${formData.video_source === 'upload'
+                          ? 'border-primary-500 bg-primary-500/10'
+                          : 'border-dark-600 hover:border-dark-500'
+                        }
+                      `}
+                    >
+                      <input
+                        type="radio"
+                        name="video_source"
+                        value="upload"
+                        checked={formData.video_source === 'upload'}
+                        onChange={handleChange}
+                        className="sr-only"
+                      />
+                      <FiUpload className="w-4 h-4 text-primary-400" />
+                      <span className="text-white text-sm">Upload Video</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Video Content Based on Source */}
+                {formData.video_source === 'youtube' ? (
+                  <div>
+                    <Input
+                      label="YouTube Video URL"
+                      name="content"
+                      value={formData.content}
+                      onChange={handleChange}
+                      error={errors.content}
+                      placeholder="https://youtube.com/watch?v=..."
+                      required
+                    />
+                    <p className="text-sm text-gray-400 mt-1">
+                      Paste the full YouTube URL here.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Upload Video File
+                    </label>
+                    <VideoUpload
+                      onUploadSuccess={handleVideoUpload}
+                      onUploadError={handleVideoUploadError}
+                      maxSizeMB={500}
+                    />
+                    {formData.content && formData.video_source === 'upload' && (
+                      <div className="mt-2 p-2 bg-green-500/10 border border-green-500/20 rounded-lg">
+                        <p className="text-sm text-green-400">
+                          ✓ Video uploaded successfully
+                        </p>
+                      </div>
+                    )}
+                    {errors.content && (
+                      <p className="text-sm text-red-400 mt-1">{errors.content}</p>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div>
