@@ -146,7 +146,7 @@ export default function AdminDashboard({ user }) {
   }
   
   const formatCurrency = (amount) => {
-    return `LKR ${(amount / 100).toLocaleString('en-US', {
+    return `LKR ${(amount).toLocaleString('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     })}`

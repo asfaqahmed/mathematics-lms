@@ -255,7 +255,7 @@ export default function AdminReports({ user }) {
   }
   
   const formatCurrency = (amount) => {
-    return `LKR ${(amount / 100).toLocaleString()}`
+    return `LKR ${(amount).toLocaleString()}`
   }
   
   if (!user) return null
