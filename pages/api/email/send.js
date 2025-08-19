@@ -12,7 +12,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: 'Missing required fields' })
     }
     
-    const result = await sendEmail(to, type, data, attachments)
+    const result = await sendEmail({ to, template: type, data, attachments })
     
     res.status(200).json({ 
       success: true, 
