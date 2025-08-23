@@ -143,6 +143,12 @@ export default function NewCourse({ user }) {
     const file = e.target.files[0]
     if (!file) return
     
+    // Check if user is available
+    if (!user || !user.id) {
+      toast.error('User authentication required. Please refresh the page.')
+      return
+    }
+    
     try {
       setLoading(true)
       

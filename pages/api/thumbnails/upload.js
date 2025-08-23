@@ -1,5 +1,4 @@
-import { supabase } from '../../../lib/supabase-admin'
-import { isAdmin } from '../../../lib/supabase'
+import { supabase, isAdminServer } from '../../../lib/supabase-admin'
 
 export const config = {
   api: {
@@ -23,7 +22,7 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: 'Authentication required' })
     }
 
-    const adminStatus = await isAdmin(user_id)
+    const adminStatus = await isAdminServer(user_id)
     if (!adminStatus) {
       return res.status(403).json({ error: 'Admin access required' })
     }

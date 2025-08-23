@@ -8,6 +8,7 @@ import {
 } from 'react-icons/fi'
 import { supabase, isAdmin } from '../../../../lib/supabase'
 import AdminLayout from '../../../../components/admin/AdminLayout'
+import VideoUpload from '../../../../components/ui/VideoUpload'
 import toast from 'react-hot-toast'
 
 export default function EditCourse({ user }) {
@@ -38,6 +39,7 @@ export default function EditCourse({ user }) {
   })
   const [addingLesson, setAddingLesson] = useState(false)
   const [deletedLessons, setDeletedLessons] = useState([])
+  const [introVideoSource, setIntroVideoSource] = useState('url')
   
   useEffect(() => {
     if (user && id) {
@@ -71,6 +73,18 @@ export default function EditCourse({ user }) {
         ...course,
         price: course.price
       })
+      
+      // Set intro video source based on current value
+      if (course.intro_video) {
+        if (course.intro_video.includes('youtube.com') || 
+            course.intro_video.includes('youtu.be') || 
+            course.intro_video.includes('vimeo.com') ||
+            course.intro_video.startsWith('http')) {
+          setIntroVideoSource('url')
+        } else {
+          setIntroVideoSource('upload')
+        }
+      }
       
       // Fetch lessons
       const { data: courseLessons, error: lessonsError } = await supabase
@@ -266,29 +280,59 @@ export default function EditCourse({ user }) {
     const file = e.target.files[0]
     if (!file) return
     
+    // Check if user is available
+    if (!user || !user.id) {
+      toast.error('User authentication required. Please refresh the page.')
+      return
+    }
+    
     try {
       setSaving(true)
       
-      const fileExt = file.name.split('.').pop()
-      const fileName = `course-${id}-${Date.now()}.${fileExt}`
-      const filePath = `courses/${fileName}`
+      // Convert file to base64
+      const reader = new FileReader()
+      reader.onload = async () => {
+        try {
+          const base64Data = reader.result.split(',')[1] // Remove data:image/...;base64, prefix
+          
+          const response = await fetch('/api/thumbnails/upload', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              user_id: user.id,
+              image_data: base64Data,
+              filename: file.name
+            })
+          })
+          
+          const result = await response.json()
+          
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to upload thumbnail')
+          }
+          
+          setCourseData({ ...courseData, thumbnail: result.url })
+          toast.success('Thumbnail uploaded successfully!')
+          
+        } catch (error) {
+          console.error('Error uploading thumbnail:', error)
+          toast.error(error.message || 'Failed to upload thumbnail')
+        } finally {
+          setSaving(false)
+        }
+      }
       
-      const { error: uploadError } = await supabase.storage
-        .from('thumbnails')
-        .upload(filePath, file)
+      reader.onerror = () => {
+        toast.error('Failed to read file')
+        setSaving(false)
+      }
       
-      if (uploadError) throw uploadError
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('thumbnails')
-        .getPublicUrl(filePath)
-      
-      setCourseData({ ...courseData, thumbnail: publicUrl })
-      toast.success('Thumbnail uploaded')
+      reader.readAsDataURL(file)
     } catch (error) {
       console.error('Error uploading thumbnail:', error)
       toast.error('Failed to upload thumbnail')
-    } finally {
       setSaving(false)
     }
   }
@@ -450,17 +494,65 @@ export default function EditCourse({ user }) {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Intro Video URL
+                      Intro Video {introVideoSource === 'url' ? 'URL' : 'Upload'}
                     </label>
-                    <div className="relative">
-                      <FiVideo className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                      <input
-                        type="url"
-                        value={courseData.intro_video}
-                        onChange={(e) => setCourseData({ ...courseData, intro_video: e.target.value })}
-                        className="input w-full pl-10"
-                      />
+                    
+                    {/* Video Source Selection */}
+                    <div className="flex items-center space-x-4 mb-3">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="intro_video_source"
+                          value="url"
+                          checked={introVideoSource === 'url'}
+                          onChange={(e) => {
+                            setIntroVideoSource(e.target.value)
+                            setCourseData({ ...courseData, intro_video: '' })
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-gray-300">YouTube/URL</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="intro_video_source"
+                          value="upload"
+                          checked={introVideoSource === 'upload'}
+                          onChange={(e) => {
+                            setIntroVideoSource(e.target.value)
+                            setCourseData({ ...courseData, intro_video: '' })
+                          }}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-gray-300">Upload Video</span>
+                      </label>
                     </div>
+                    
+                    {/* Video Input */}
+                    {introVideoSource === 'url' ? (
+                      <div className="relative">
+                        <FiVideo className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                        <input
+                          type="url"
+                          value={courseData.intro_video}
+                          onChange={(e) => setCourseData({ ...courseData, intro_video: e.target.value })}
+                          className="input w-full pl-10"
+                          placeholder="https://youtube.com/watch?v=..."
+                        />
+                      </div>
+                    ) : (
+                      <VideoUpload
+                        onUploadSuccess={(videoData) => {
+                          setCourseData({ ...courseData, intro_video: videoData.url })
+                          toast.success('Intro video uploaded successfully!')
+                        }}
+                        onUploadError={(error) => {
+                          toast.error('Failed to upload intro video')
+                        }}
+                        maxSizeMB={200}
+                      />
+                    )}
                   </div>
                 </div>
               </motion.div>
