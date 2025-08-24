@@ -649,9 +649,16 @@ export default function EditCourse({ user }) {
                           </div>
                           
                           {newLesson.video_source === 'upload' ? (
-                            <div className="p-3 border border-dashed border-gray-600 rounded-lg text-center">
-                              <p className="text-sm text-gray-400">Video upload available in full lesson editor</p>
-                            </div>
+                            <VideoUpload
+                              onUploadSuccess={(videoData) => {
+                                setNewLesson({ ...newLesson, content: videoData.url })
+                                toast.success('Video uploaded successfully!')
+                              }}
+                              onUploadError={(error) => {
+                                toast.error('Failed to upload video')
+                              }}
+                              maxSizeMB={500}
+                            />
                           ) : (
                             <input
                               type="url"
@@ -744,33 +751,85 @@ export default function EditCourse({ user }) {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-3">
-                        <select
-                          value={lesson.type}
-                          onChange={(e) => updateLesson(index, 'type', e.target.value)}
-                          className="input"
-                        >
-                          <option value="video">Video</option>
-                          <option value="post">Article</option>
-                        </select>
-                        
-                        <input
-                          type="number"
-                          value={lesson.duration}
-                          onChange={(e) => updateLesson(index, 'duration', e.target.value)}
-                          className="input"
-                          placeholder="Duration"
-                        />
-                        
-                        <label className="flex items-center space-x-2">
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-3">
+                          <select
+                            value={lesson.type}
+                            onChange={(e) => updateLesson(index, 'type', e.target.value)}
+                            className="input"
+                          >
+                            <option value="video">Video</option>
+                            <option value="post">Article</option>
+                          </select>
+                          
                           <input
-                            type="checkbox"
-                            checked={lesson.is_preview}
-                            onChange={(e) => updateLesson(index, 'is_preview', e.target.checked)}
-                            className="w-4 h-4"
+                            type="number"
+                            value={lesson.duration}
+                            onChange={(e) => updateLesson(index, 'duration', e.target.value)}
+                            className="input"
+                            placeholder="Duration"
                           />
-                          <span className="text-sm text-gray-300">Preview</span>
-                        </label>
+                          
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={lesson.is_preview}
+                              onChange={(e) => updateLesson(index, 'is_preview', e.target.checked)}
+                              className="w-4 h-4"
+                            />
+                            <span className="text-sm text-gray-300">Preview</span>
+                          </label>
+                        </div>
+                        
+                        {lesson.type === 'video' && (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`video_source_${index}`}
+                                  value="youtube"
+                                  checked={!lesson.video_source || lesson.video_source !== 'upload'}
+                                  onChange={(e) => updateLesson(index, 'video_source', 'youtube')}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-xs text-gray-300">YouTube URL</span>
+                              </label>
+                              <label className="flex items-center space-x-2">
+                                <input
+                                  type="radio"
+                                  name={`video_source_${index}`}
+                                  value="upload"
+                                  checked={lesson.video_source === 'upload'}
+                                  onChange={(e) => updateLesson(index, 'video_source', 'upload')}
+                                  className="w-4 h-4"
+                                />
+                                <span className="text-xs text-gray-300">Upload Video</span>
+                              </label>
+                            </div>
+                            
+                            {lesson.video_source === 'upload' ? (
+                              <VideoUpload
+                                onUploadSuccess={(videoData) => {
+                                  updateLesson(index, 'content', videoData.url)
+                                  toast.success('Video uploaded successfully!')
+                                }}
+                                onUploadError={(error) => {
+                                  toast.error('Failed to upload video')
+                                }}
+                                maxSizeMB={500}
+                              />
+                            ) : (
+                              <input
+                                type="url"
+                                value={lesson.content}
+                                onChange={(e) => updateLesson(index, 'content', e.target.value)}
+                                className="input w-full text-sm"
+                                placeholder="YouTube Video URL"
+                              />
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
