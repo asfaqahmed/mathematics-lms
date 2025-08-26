@@ -122,7 +122,7 @@ export async function middleware(req) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.payhere.lk *.stripe.com *.google-analytics.com *.googletagmanager.com js.stripe.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com *.stripe.com *.stripe.network m.stripe.network; font-src 'self' fonts.gstatic.com; img-src 'self' data: blob: *.supabase.co *.unsplash.com *.ytimg.com *.googletagmanager.com *.pexels.com images.pexels.com; connect-src 'self' *.supabase.co *.stripe.com *.payhere.lk *.google-analytics.com; frame-src 'self' js.stripe.com *.stripe.com *.payhere.lk sandbox.payhere.lk payhere.lk/lib/payhere.js youtube.com *.youtube.com"
+    "default-src *; script-src * 'unsafe-eval' 'unsafe-inline'; style-src * 'unsafe-inline'; font-src *; img-src * data: blob:; connect-src *; frame-src *"
   )
   
   return response
