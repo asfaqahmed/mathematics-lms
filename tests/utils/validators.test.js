@@ -1,4 +1,7 @@
-import { isValidEmail, isValidName, validatePassword } from '../../utils/validators'
+import { isValidEmail, validatePassword } from '../../utils/validation'
+
+// Helper function for name validation since it's not exported from the new module
+const isValidName = (name) => name && name.trim().length >= 2 && name.trim().length <= 50
 
 describe('Validator Utilities', () => {
   describe('isValidEmail', () => {

@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*", "./src/*"],
+      "@/components/*": ["components/*", "src/components/*"],
+      "@/lib/*": ["lib/*", "src/lib/*"],
+      "@/utils/*": ["utils/*", "src/utils/*"],
+      "@/styles/*": ["styles/*", "src/styles/*"],
+      "@/hooks/*": ["hooks/*", "src/hooks/*"],
+      "@/contexts/*": ["contexts/*", "src/contexts/*"]
+    },
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "es6"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".next", "out", "public", "tests", "__tests__"]
+}

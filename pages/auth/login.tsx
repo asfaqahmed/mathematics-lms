@@ -1,91 +1,137 @@
-import { useState } from 'react'
+import { useState, FormEvent, ChangeEvent } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion } from 'framer-motion'
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowRight } from 'react-icons/fi'
 import { supabase } from '../../lib/supabase'
 import toast from 'react-hot-toast'
+import { handleError } from '@/utils/error'
+import { validateEmail } from '@/utils/validation'
 
+interface LoginFormData {
+  email: string
+  password: string
+}
+
+/**
+ * Login page component
+ * Handles user authentication and redirects based on user role
+ */
 export default function Login() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [formData, setFormData] = useState({
+  const [loading, setLoading] = useState<boolean>(false)
+  const [showPassword, setShowPassword] = useState<boolean>(false)
+  const [formData, setFormData] = useState<LoginFormData>({
     email: '',
     password: ''
   })
 
-  
-  const handleSubmit = async (e) => {
+  /**
+   * Handles form submission for user login
+   */
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault()
+
+    // Validate form data
+    if (!validateEmail(formData.email)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters')
+      return
+    }
+
     setLoading(true)
-    
+
     console.log('Login: Form submitted', {
       email: formData.email,
       redirectTo: router.query.redirectTo
     })
-    
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password
       })
-      
+
       if (error) throw error
-      
+
       console.log('Login: Authentication successful', {
-        userId: data.user.id,
+        userId: data.user?.id,
         redirectTo: router.query.redirectTo
       })
-      
+
       toast.success('Welcome back!')
-      
+
       // Get user profile to check role
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
         .single()
-      
+
+      if (profileError) {
+        console.error('Login: Error fetching profile', profileError)
+      }
+
       console.log('Login: Profile fetched', { profile })
-      
+
       // Determine redirect URL based on role and query params
-      let redirectTo = router.query.redirectTo
-      
+      let redirectTo = router.query.redirectTo as string
+
       if (!redirectTo) {
         // If no specific redirect requested, use role-based default
         redirectTo = profile?.role === 'admin' ? '/admin' : '/courses'
       }
-      
+
       console.log('Login: Redirecting to:', redirectTo)
-      
-      // Use router.replace to avoid adding to history and wait longer for session
+
+      // Use setTimeout to allow auth state to propagate
       setTimeout(() => {
-        window.location.href = redirectTo
+        if (typeof window !== 'undefined') {
+          window.location.href = redirectTo
+        }
       }, 500)
     } catch (error) {
       console.error('Login: Authentication failed', error)
-      toast.error(error.message || 'Invalid email or password')
+      handleError(error as Error, {
+        component: 'Login',
+        action: 'handleSubmit'
+      })
+      toast.error((error as Error).message || 'Invalid email or password')
     } finally {
       setLoading(false)
     }
   }
-  
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+
+  /**
+   * Handles input field changes
+   */
+  const handleChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
   }
-  
+
+  /**
+   * Toggles password visibility
+   */
+  const togglePasswordVisibility = (): void => {
+    setShowPassword(prev => !prev)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-dark-900 via-dark-800 to-primary-900 flex items-center justify-center px-4">
       {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-500/20 rounded-full filter blur-3xl animate-float"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full filter blur-3xl animate-float animation-delay-2000"></div>
       </div>
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -94,21 +140,19 @@ export default function Login() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" legacyBehavior>
-            <a className="inline-flex items-center space-x-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-500 rounded-lg blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
-                <div className="relative bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-lg px-3 py-1.5 font-display font-bold text-xl">
-                  MP
-                </div>
+          <Link href="/" className="inline-flex items-center space-x-3 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-purple-500 rounded-lg blur-lg opacity-50 group-hover:opacity-75 transition-opacity"></div>
+              <div className="relative bg-gradient-to-r from-primary-500 to-purple-500 text-white rounded-lg px-3 py-1.5 font-display font-bold text-xl">
+                MP
               </div>
-              <span className="text-white font-display font-semibold text-xl">
-                MathPro Academy
-              </span>
-            </a>
+            </div>
+            <span className="text-white font-display font-semibold text-xl">
+              MathPro Academy
+            </span>
           </Link>
         </div>
-        
+
         {/* Login Card */}
         <div className="glass rounded-2xl p-8">
           <h2 className="text-3xl font-display font-bold text-white mb-2 text-center">
@@ -117,16 +161,17 @@ export default function Login() {
           <p className="text-gray-400 text-center mb-8">
             Sign in to continue your learning journey
           </p>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                <FiMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" aria-hidden="true" />
                 <input
+                  id="email"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -134,18 +179,20 @@ export default function Login() {
                   className="input pl-10"
                   placeholder="you@example.com"
                   required
+                  autoComplete="email"
                 />
               </div>
             </div>
-            
+
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                 Password
               </label>
               <div className="relative">
-                <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+                <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" aria-hidden="true" />
                 <input
+                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
@@ -153,17 +200,19 @@ export default function Login() {
                   className="input pl-10 pr-10"
                   placeholder="••••••••"
                   required
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  onClick={togglePasswordVisibility}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <FiEyeOff /> : <FiEye />}
                 </button>
               </div>
             </div>
-            
+
             {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center">
@@ -173,31 +222,31 @@ export default function Login() {
                 />
                 <span className="ml-2 text-sm text-gray-400">Remember me</span>
               </label>
-              
-              <Link href="/auth/forgot-password" legacyBehavior>
-                <a className="text-sm text-primary-400 hover:text-primary-300">
-                  Forgot password?
-                </a>
+
+              <Link href="/auth/forgot-password" className="text-sm text-primary-400 hover:text-primary-300 transition-colors">
+                Forgot password?
               </Link>
             </div>
-            
+
             {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary flex items-center justify-center space-x-2"
+              className="w-full btn-primary flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <div className="spinner w-5 h-5 border-2"></div>
+                <div className="spinner w-5 h-5 border-2" role="status" aria-label="Signing in">
+                  <span className="sr-only">Signing in...</span>
+                </div>
               ) : (
                 <>
                   <span>Sign In</span>
-                  <FiArrowRight />
+                  <FiArrowRight aria-hidden="true" />
                 </>
               )}
             </button>
           </form>
-          
+
           {/* Divider */}
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center">
@@ -207,11 +256,15 @@ export default function Login() {
               <span className="px-4 bg-dark-800/50 text-gray-400">Or continue with</span>
             </div>
           </div>
-          
-          {/* Social Login (Optional) */}
+
+          {/* Social Login Buttons */}
           <div className="grid grid-cols-2 gap-4">
-            <button className="btn-secondary flex items-center justify-center space-x-2">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <button
+              type="button"
+              className="btn-secondary flex items-center justify-center space-x-2"
+              aria-label="Sign in with Google"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -219,22 +272,24 @@ export default function Login() {
               </svg>
               <span>Google</span>
             </button>
-            
-            <button className="btn-secondary flex items-center justify-center space-x-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+
+            <button
+              type="button"
+              className="btn-secondary flex items-center justify-center space-x-2"
+              aria-label="Sign in with GitHub"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
               </svg>
               <span>GitHub</span>
             </button>
           </div>
-          
+
           {/* Sign Up Link */}
           <p className="text-center text-gray-400 mt-8">
             Don't have an account?{' '}
-            <Link href="/auth/register" legacyBehavior>
-              <a className="text-primary-400 hover:text-primary-300 font-medium">
-                Sign up
-              </a>
+            <Link href="/auth/register" className="text-primary-400 hover:text-primary-300 font-medium transition-colors">
+              Sign up
             </Link>
           </p>
         </div>

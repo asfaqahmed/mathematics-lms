@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { FiPlay, FiPause, FiLoader, FiAlertCircle, FiExternalLink } from 'react-icons/fi'
-import { getYouTubeEmbedUrl, isYouTubeUrl, getYouTubeThumbnail } from '../../utils/youtube'
+import { getYouTubeEmbedUrl, getVideoType, getVideoThumbnail } from '../../utils/video'
 
 /**
  * Enhanced Video Player Component
@@ -23,7 +23,7 @@ export default function EnhancedVideoPlayer({
   const loadTimeoutRef = useRef(null)
 
   // Check if the URL is a valid YouTube URL
-  const isValidYouTube = isYouTubeUrl(videoUrl)
+  const isValidYouTube = getVideoType(videoUrl) === 'youtube'
   const embedUrl = isValidYouTube ? getYouTubeEmbedUrl(videoUrl, {
     origin: typeof window !== 'undefined' ? window.location.origin : '',
     rel: 0,

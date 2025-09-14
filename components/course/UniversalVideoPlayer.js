@@ -5,8 +5,7 @@ import {
   FiVolume2, FiVolumeX, FiMaximize, FiMinimize, FiSkipBack,
   FiSkipForward, FiSettings
 } from 'react-icons/fi'
-import { getVideoType, validateVideoUrl, getVideoThumbnail, checkVideoFormatSupport } from '../../utils/video'
-import { getYouTubeEmbedUrl } from '../../utils/youtube'
+import { getVideoType, validateVideoUrl, getVideoThumbnail, checkVideoFormatSupport, getYouTubeEmbedUrl } from '../../utils/video'
 
 /**
  * Universal Video Player Component

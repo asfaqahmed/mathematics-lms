@@ -1,4 +1,4 @@
-import { formatPrice, formatDuration, formatDate } from '../../utils/formatters'
+import { formatCurrency as formatPrice, formatDuration, formatDate } from '../../utils/format'
 
 describe('Formatter Utilities', () => {
   describe('formatPrice', () => {
